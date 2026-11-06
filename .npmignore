@@ -1,0 +1,14 @@
+.git/
+.github/
+.changeset/
+tests/
+scripts/
+docs/
+*.tgz
+.env
+.env.*
+*.log
+coverage/
+.tmp/
+tmp/
+runtime/

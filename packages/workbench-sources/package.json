@@ -1,14 +1,38 @@
 {
   "name": "dsh-plugin-workbench-sources",
   "version": "0.1.0",
-  "private": true,
-  "description": "工作台来源栏薄壳：挂载来源条并注册「DSH 会话」标签，供 Herdr / Grok 等业务插件注入。",
+  "description": "DSH 工作台来源栏薄壳：只注册「DSH 会话」并为 Herdr / Grok 提供来源标签槽位。",
   "type": "module",
   "main": "index.js",
+  "files": [
+    "cordis.patch.yml",
+    "client.js",
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "workbench",
+    "sources"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REPLACE_ME/dsh-workbench-plugins.git",
+    "directory": "packages/workbench-sources"
+  },
+  "homepage": "https://github.com/REPLACE_ME/dsh-workbench-plugins#readme",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=22.4.0"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "dsh": {
     "client": {
@@ -19,7 +43,14 @@
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-settings-general",
         "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ],
+      "external": [
+        "react",
+        "react-dom"
       ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     }
   }
 }

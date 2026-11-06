@@ -1,14 +1,44 @@
 {
   "name": "dsh-plugin-grok-workbench",
   "version": "0.1.0",
-  "private": true,
-  "description": "Grok bot 工作台插件：机器人列表、对话区与 grok.com 会话检测。依赖工作台来源壳，不再依赖 Herdr。",
+  "description": "Grok bot DSH 工作台插件：机器人列表、对话区、附件上传与 grok.com 会话检测。",
   "type": "module",
   "main": "index.js",
+  "files": [
+    "cordis.patch.yml",
+    "client.js",
+    "grok-service.mjs",
+    "grok/auth.js",
+    "grok/relay.js",
+    "grok/web.js",
+    "THIRD_PARTY_NOTICES.md",
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "grok",
+    "workbench",
+    "browser-session"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REPLACE_ME/dsh-workbench-plugins.git",
+    "directory": "packages/grok-workbench"
+  },
+  "homepage": "https://github.com/REPLACE_ME/dsh-workbench-plugins#readme",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=22.4.0"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "dsh": {
     "client": {
@@ -20,7 +50,18 @@
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-settings-general",
         "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ],
+      "external": [
+        "react",
+        "react-dom",
+        "dsh-plugin-workbench-sources"
       ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     }
+  },
+  "peerDependencies": {
+    "dsh-plugin-workbench-sources": "^0.1.0"
   }
 }

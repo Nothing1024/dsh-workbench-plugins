@@ -1,0 +1,4 @@
+# Activated as a DSH profile layer by dsh plugin add.
+- insert:
+    - id: herdr-live
+      name: dsh-plugin-herdr-live

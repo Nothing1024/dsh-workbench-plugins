@@ -1,0 +1,4 @@
+# Activated as a DSH profile layer by dsh plugin add.
+- insert:
+    - id: workbench-sources
+      name: dsh-plugin-workbench-sources

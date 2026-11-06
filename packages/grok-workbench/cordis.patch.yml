@@ -1,0 +1,4 @@
+# Activated as a DSH profile layer by dsh plugin add.
+- insert:
+    - id: grok-workbench
+      name: dsh-plugin-grok-workbench

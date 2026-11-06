@@ -1,0 +1,28 @@
+{
+  "name": "dsh-workbench-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH 工作台来源插件的独立 npm monorepo。",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": "^22.11.0 || ^24.0.0 || >=26.0.0",
+    "npm": ">=10.9.0"
+  },
+  "scripts": {
+    "lint": "node scripts/check.mjs",
+    "check": "npm run lint",
+    "test": "node --test tests/*.test.mjs",
+    "verify:install": "node scripts/verify-install.mjs",
+    "pack:dry-run": "node scripts/pack-dry-run.mjs",
+    "changeset": "changeset",
+    "version:packages": "changeset version",
+    "release:check": "npm run check && npm test && npm run pack:dry-run",
+    "release:publish": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^3.0.3"
+  }
+}

@@ -1,0 +1,35 @@
+name: Check and pack (draft)
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install development dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Lint and syntax checks
+        run: npm run check
+      - name: Offline tests
+        run: npm test
+      - name: Pack dry-run
+        run: npm run pack:dry-run
+      - name: Changesets status
+        run: npm run changeset -- status
+      - name: Installer plans only
+        run: |
+          node scripts/install.mjs both --source local --profile ci --dry-run
+          node scripts/install.mjs both --source npm --version 0.1.0 --profile ci --dry-run
+      # No publish job, npm token, profile installation, or remote mutation.
