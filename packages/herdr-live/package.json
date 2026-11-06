@@ -1,0 +1,26 @@
+{
+  "name": "dsh-plugin-herdr-live",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Herdr / Ovis 工作台插件：原生项目与终端侧栏、主区 iframe，以及接入 URL 设置。依赖工作台来源壳。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "dsh-plugin-workbench-sources",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ]
+    }
+  }
+}

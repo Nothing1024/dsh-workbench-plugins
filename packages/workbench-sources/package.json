@@ -1,0 +1,25 @@
+{
+  "name": "dsh-plugin-workbench-sources",
+  "version": "0.1.0",
+  "private": true,
+  "description": "工作台来源栏薄壳：挂载来源条并注册「DSH 会话」标签，供 Herdr / Grok 等业务插件注入。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ]
+    }
+  }
+}

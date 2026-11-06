@@ -1,0 +1,26 @@
+{
+  "name": "dsh-plugin-grok-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Grok bot 工作台插件：机器人列表、对话区与 grok.com 会话检测。依赖工作台来源壳，不再依赖 Herdr。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "dsh-plugin-workbench-sources",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ]
+    }
+  }
+}
