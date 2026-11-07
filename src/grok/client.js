@@ -72,7 +72,7 @@ export function createGrokClient(require, sources) {
       .dsh-plugin-settings .grok-settings-card h3{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;font-weight:500}
       .dsh-plugin-settings .hint{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5;margin:0}
       .dsh-plugin-settings .row{display:flex;flex-wrap:wrap;gap:8px}
-      .dsh-plugin-settings button{appearance:none;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:inherit;cursor:pointer;font:inherit}
+      .dsh-plugin-settings button,.dsh-plugin-settings .auth-login{appearance:none;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:inherit;cursor:pointer;font:inherit}
       .dsh-plugin-settings button[data-primary]{background:var(--dsw-alias-state-business-primary);color:#fff;border-color:transparent}
       .dsh-plugin-settings button:disabled{opacity:.5;cursor:default}
       .dsh-plugin-settings .status{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.45}
@@ -84,6 +84,9 @@ export function createGrokClient(require, sources) {
       .dsh-plugin-settings dd{margin:0;overflow-wrap:anywhere}
       .dsh-plugin-settings .auth-field{display:flex;flex-direction:column;gap:8px;font-size:13px}
       .dsh-plugin-settings .auth-field input{box-sizing:border-box;width:100%;height:36px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);color:inherit;font:inherit}
+      .dsh-plugin-settings .auth-help{font-size:12px;color:var(--dsw-alias-label-secondary)}
+      .dsh-plugin-settings .auth-help summary{cursor:pointer}
+      .dsh-plugin-settings .auth-help[open]{display:flex;flex-direction:column;gap:10px}
       .dsh-plugin-settings-shade{position:fixed;inset:0;z-index:80;background:#0006;display:grid;place-items:center;padding:24px}
       .dsh-plugin-settings-dialog{width:min(560px,100%);max-height:min(88vh,720px);overflow:auto;border-radius:12px;background:var(--dsw-alias-bg-base);box-shadow:0 16px 48px #0004;padding:18px 18px 16px;position:relative}
       .dsh-plugin-settings-dialog .dsh-plugin-settings-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}
@@ -96,10 +99,19 @@ export function createGrokClient(require, sources) {
       const [manualAuth,setManualAuth]=React.useState('');
       const [conn,setConn]=React.useState(null);
       const [busy,setBusy]=React.useState('');
-      const [notice,setNotice]=React.useState('打开此页时会检测 grok.com 会话，不会在界面上显示 cookie 内容。');
+      const [action,setAction]=React.useState('read');
+      const [notice,setNotice]=React.useState('正在检测 Grok 登录信息…');
       const [ok,setOk]=React.useState(null);
+      function authNotice(value){
+        if(!value.signedIn)return '未找到完整的 Grok 登录信息。请确认浏览器已登录并开启调试连接，或使用下方的手动 Auth。';
+        if(value.source==='config')return '正在使用启动配置或环境变量中的 Auth。';
+        if(value.source?.startsWith('file:'))return '正在使用本机保存的手动 Auth。';
+        if(value.source?.startsWith('browser:'))return '已从浏览器读取 Grok 登录信息。机器人连接后可确认登录是否有效。';
+        return '已读取本地缓存中的 Grok 登录信息。机器人连接后可确认登录是否有效。';
+      }
       async function run(kind, work){
-        setBusy(kind);
+        setAction(kind);setBusy(kind);setOk(null);
+        setNotice({read:'正在读取 Grok 登录信息…',save:'正在保存手动 Auth…',remove:'正在移除手动 Auth…',clear:'正在清除登录缓存…'}[kind]);
         try{
           const result=await work();
           if(result?.auth)setAuth(result.auth);
@@ -112,21 +124,52 @@ export function createGrokClient(require, sources) {
           setNotice(error.message);
         }finally{setBusy('');}
       }
-      React.useEffect(()=>{void run('detect',async()=>{
-        const nextAuth=await request('/auth');
-        let nextConn=null;
-        try{nextConn=await request('/status');}catch{nextConn=null;}
-        return {ok:!!nextAuth.signedIn,auth:nextAuth,conn:nextConn,text:nextAuth.message||'已完成检测。'};
-      });},[]);
+      async function readAuth(force=false){
+        const nextAuth=await request(force?'/auth-refresh':'/auth',force?{}:undefined);
+        let nextConn={connection:'idle'};
+        if(!force){try{nextConn=await request('/status');}catch{nextConn=null;}}
+        return {ok:!!nextAuth.signedIn,auth:nextAuth,conn:nextConn,text:authNotice(nextAuth)};
+      }
+      React.useEffect(()=>{void run('read',()=>readAuth());},[]);
+      const manualAction=action==='save'||action==='remove';
+      const feedback=h('div',{className:'status',role:'status','aria-live':'polite'},h('span',{className:'dot','data-ok':ok===null?undefined:String(ok),'aria-hidden':true}),h('span',null,notice));
       return h('div',{className:'dsh-plugin-settings','data-plugin-settings':'grok-workbench'},
         h('style',null,grokSettingsStyles),
-        h('header',null,h('h2',null,'Grok bot'),h('p',{className:'lead'},'手动配置 Grok bot 的 Auth，或继续使用自动会话检测。')),
+        h('header',null,h('h2',null,'Grok bot'),h('p',{className:'lead'},'自动读取已登录的 Grok；读取不到时，也可以手动填写 Auth。')),
+        h('section',{className:'grok-settings-card',role:'group','aria-label':'自动读取登录信息'},
+          h('h3',null,'自动读取登录信息'),
+          h('p',{className:'hint'},'打开此页会自动检测。请先在运行 DSH 的这台机器上登录 Grok，并开启浏览器的调试连接。'),
+          h('div',{className:'row'},
+            h('button',{type:'button','data-primary':true,disabled:!!busy,onClick:()=>void run('read',()=>readAuth(true))},busy==='read'?'读取中…':'自动读取登录信息'),
+            h('a',{className:'auth-login',href:'https://grok.com/',target:'_blank',rel:'noopener noreferrer'},'在浏览器登录 Grok'),
+          ),
+          auth?.source==='config'
+            ?h('p',{className:'hint'},'当前优先使用启动配置或环境变量中的 Auth；自动读取不会替换它。要使用浏览器登录，请先移除对应的启动配置。')
+            :auth?.manualConfigured&&h('p',{className:'hint'},'当前优先使用下方已保存的手动 Auth。要改用浏览器登录，请先点击「移除手动 Auth」，再点击「自动读取登录信息」。'),
+          h('dl',null,
+            h('dt',null,'登录信息'),h('dd',null,auth?(auth.signedIn?'已找到':'未找到'):'读取中…'),
+            h('dt',null,'当前来源'),h('dd',null,auth?.source?.startsWith('file:')?'手动 Auth（本机保存）':auth?.sourceLabel||'—'),
+            ...(auth?.userId?[h('dt',{key:'user-label'},'用户'),h('dd',{key:'user-value'},auth.userId)]:[]),
+            h('dt',null,'机器人连接'),h('dd',null,conn?connectionLabel(conn.connection):'—'),
+          ),
+          !manualAction&&feedback,
+          h('details',{className:'auth-help'},
+            h('summary',null,'读取不到或想清除缓存？'),
+            h('p',{className:'hint'},'自动读取支持同机、已开启远程调试的 Chrome 等浏览器；仅打开 Grok 网页不保证可以读取。DSH 运行在另一台机器或浏览器未开启调试时，可使用下方手动 Auth。'),
+            h('p',{className:'hint'},'清除登录缓存不会退出浏览器登录，也不会删除手动 Auth。'),
+            h('button',{type:'button',disabled:!!busy,onClick:()=>void run('clear',async()=>{
+              const nextAuth=await request('/auth-clear',{});
+              return {ok:true,auth:nextAuth,conn:{connection:'idle'},text:'登录缓存已清除。浏览器登录和手动 Auth 均保留，可点击「自动读取登录信息」重新读取。'};
+            })},busy==='clear'?'清除中…':'清除登录缓存'),
+          ),
+        ),
         h('section',{className:'grok-settings-card',role:'group','aria-label':'手动 Auth'},
           h('h3',null,'手动 Auth'),
+          h('p',{className:'hint'},'自动读取不可用时，填写 Grok 的完整 Cookie 或单独的 SSO 值，再点击「保存并应用」。'),
           h('label',{className:'auth-field'},'Grok bot Auth',
             h('input',{type:'password',value:manualAuth,autoComplete:'off',spellCheck:false,'aria-label':'Grok bot Auth',placeholder:auth?.manualConfigured?'已保存；填写新 Auth 可替换':'Cookie: sso=… 或单独的 SSO 值',onChange:event=>setManualAuth(event.target.value)}),
           ),
-          h('p',{className:'hint'},'Auth 只保存在当前 DSH 所在机器，保存后不再显示原文。启动配置和环境变量仍优先于此处保存的内容。'),
+          h('p',{className:'hint'},'只保存在运行 DSH 的机器上，保存后输入框清空，不显示 Auth 原文。'),
           h('div',{className:'row'},
             h('button',{type:'button','data-primary':true,disabled:!!busy||!manualAuth.trim(),onClick:()=>void run('save',async()=>{
               const nextAuth=await request('/auth-save',{cookie:manualAuth});
@@ -138,41 +181,11 @@ export function createGrokClient(require, sources) {
               const nextAuth=await request('/auth-remove',{});
               setManualAuth('');setConn({connection:'idle'});
               window.dispatchEvent(new CustomEvent('dsh-grok-auth-changed'));
-              return {ok:true,auth:nextAuth,text:nextAuth.message};
+              return {ok:true,auth:nextAuth,text:'手动 Auth 已移除。可点击上方「自动读取登录信息」读取浏览器登录。'};
             })},busy==='remove'?'移除中…':'移除手动 Auth'),
           ),
+          manualAction&&feedback,
         ),
-        h('section',{className:'grok-settings-card',role:'group','aria-label':'会话状态'},
-          h('h3',null,'会话状态'),
-          h('dl',null,
-            h('dt',null,'登录'),h('dd',null,auth? (auth.signedIn?'已检测到会话':'未检测到会话'):'检测中…'),
-            h('dt',null,'来源'),h('dd',null,auth?.sourceLabel||auth?.source||'—'),
-            h('dt',null,'用户'),h('dd',null,auth?.userId||'—'),
-            h('dt',null,'Cookie'),h('dd',null,auth?.cookiePresent?((auth.cookieNames||[]).join(', ')||'已找到，未列出名称'):'未找到'),
-            h('dt',null,'连接'),h('dd',null,conn?connectionLabel(conn.connection):'—'),
-          ),
-          h('p',{className:'hint'},'解析顺序：插件配置 / GROK_COOKIE → ~/.dsh/grokbot/cookie.txt → 已打开且可调试的 Chrome 系浏览器 → 12 小时本地缓存。'),
-        ),
-        h('div',{className:'row'},
-          h('button',{type:'button',disabled:!!busy,onClick:()=>void run('detect',async()=>{
-            const nextAuth=await request('/auth');
-            let nextConn=null;
-            try{nextConn=await request('/status');}catch{nextConn=null;}
-            return {ok:!!nextAuth.signedIn,auth:nextAuth,conn:nextConn,text:nextAuth.message||'已完成检测。'};
-          })},busy==='detect'?'检测中…':'检测会话'),
-          h('button',{type:'button','data-primary':true,disabled:!!busy,onClick:()=>void run('load',async()=>{
-            const nextAuth=await request('/auth-refresh',{});
-            return {ok:!!nextAuth.signedIn,auth:nextAuth,text:nextAuth.message||'已重新加载会话。'};
-          })},busy==='load'?'加载中…':'重新加载会话'),
-          h('a',{href:'https://grok.com/',target:'_blank',rel:'noopener noreferrer'},
-            h('button',{type:'button'},'打开 grok.com 登录'),
-          ),
-          h('button',{type:'button',disabled:!!busy,onClick:()=>void run('clear',async()=>{
-            const nextAuth=await request('/auth-clear',{});
-            return {ok:false,auth:nextAuth,text:nextAuth.message||'已清除本地会话缓存，未删除你的 cookie 文件。'};
-          })},busy==='clear'?'清除中…':'清除缓存'),
-        ),
-        h('div',{className:'status'},h('span',{className:'dot','data-ok':ok===null?undefined:String(ok),'aria-hidden':true}),h('span',null,notice)),
       );
     }
     function GrokSettingsOverlay({onClose}){
