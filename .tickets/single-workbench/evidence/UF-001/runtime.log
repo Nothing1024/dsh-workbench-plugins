@@ -1,5 +1,0 @@
-npm run verify:install with installed DSH package anchor
-tarball: one host entry, one client factory, no internal peer packages; resolution passed
-DSH file: exactly one workbench plugin activated; real DSH browser module loader passed
-public apply: Herdr proxy starts and Grok routes mount by default; fake upstream and synthetic account passed
-missing-profile and unknown-argument branches rejected; service resources released

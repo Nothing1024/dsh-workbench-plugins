@@ -1,5 +1,0 @@
-npm run build: one browser bundle built.
-npm run check: 31 JavaScript/MJS files passed.
-Existing behavior tests passed after path migration.
-Seven service implementation files matched pre-merge workspace byte for byte, including prior credential fixes.
-Single publishable root package and three source directories verified.

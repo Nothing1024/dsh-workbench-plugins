@@ -1,5 +1,0 @@
-Full offline regression: 100 tests, all passed (node --test tests/*.test.mjs).
-npm run check: 31 JS/MJS parsed and one-package metadata verified.
-npm run changeset -- status: passed, no version bump queued for first release.
-npm run pack:dry-run: one package, 22 allowlisted files, no personal paths or credential-pattern matches.
-git diff --check: passed.
