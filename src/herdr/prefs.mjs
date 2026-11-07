@@ -1,8 +1,10 @@
 import {homedir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 
-export const PREFS_PATH = join(homedir(), '.dsh', 'herdr-live', 'prefs.json');
+export const PREFS_PATH = process.env.DSH_HERDR_PREFS_FILE
+  ? resolve(process.env.DSH_HERDR_PREFS_FILE)
+  : join(homedir(), '.dsh', 'herdr-live', 'prefs.json');
 
 export const DEFAULTS = {
   upstreamOrigin: 'http://127.0.0.1:7317',
@@ -32,17 +34,17 @@ export function sanitizeHerdrPrefs(raw = {}) {
   return prefs;
 }
 
-export async function readHerdrPrefs() {
+export async function readHerdrPrefs(defaults = {}) {
   try {
-    return sanitizeHerdrPrefs(JSON.parse(await readFile(PREFS_PATH, 'utf8')));
+    return sanitizeHerdrPrefs({...defaults, ...JSON.parse(await readFile(PREFS_PATH, 'utf8'))});
   } catch {
-    return sanitizeHerdrPrefs({});
+    return sanitizeHerdrPrefs(defaults);
   }
 }
 
 export async function writeHerdrPrefs(patch) {
   const next = sanitizeHerdrPrefs({...await readHerdrPrefs(), ...patch});
-  await mkdir(join(homedir(), '.dsh', 'herdr-live'), {recursive: true, mode: 0o700});
+  await mkdir(dirname(PREFS_PATH), {recursive: true, mode: 0o700});
   await writeFile(PREFS_PATH, JSON.stringify(next, null, 2) + '\n', {mode: 0o600});
   return next;
 }

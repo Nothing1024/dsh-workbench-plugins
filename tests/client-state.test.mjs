@@ -84,7 +84,8 @@ function text(tree) {
 function harness(t) {
   const clock = fakeClock();
   const entries = [], cleanups = [], requests = [], streams = [], sent = [];
-  const listeners = new Map(), subscribers = new Set(), hooks = new Map();
+  const listeners = new Map(), subscribers = new Set(), hooks = new Map(), storage = new Map();
+  const localStorage = {getItem:key => storage.get(key) ?? null, setItem:(key,value) => storage.set(key,value)};
   let plugin, activePanelId = null, hookStorage = null, hookIndex = 0, contentWindow = null;
   function nextHook(initial) {
     assert(hookStorage, 'Hooks are evaluated only while rendering a slot');
@@ -116,6 +117,7 @@ function harness(t) {
   const window = {
     innerWidth: 1600, innerHeight: 1000, addEventListener, removeEventListener,
     setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout,
+    dispatchEvent(event) { for (const listener of listeners.get(event.type) ?? []) listener(event); },
     __ModuleLoader__: {
       load(module) {
         plugin = module.factory(name => {
@@ -146,9 +148,9 @@ function harness(t) {
   function fetch(url, options = {}) {
     const path = new URL(url).pathname;
     const method = options.method ?? 'GET';
-    assert((path === '/__dsh_herdr/session' && method === 'GET') || (path === '/__dsh_herdr/action' && method === 'POST'), 'Only synthetic sidebar requests are permitted');
+    assert((path === '/__dsh_herdr/session' && method === 'GET') || (path === '/__dsh_herdr/action' && method === 'POST') || (path === '/__dsh_herdr/config' && method === 'POST'), 'Only synthetic sidebar and settings requests are permitted');
     const result = deferred();
-    const request = { path, method, body: options.body ? JSON.parse(options.body) : null, signal: options.signal, result, finished: false };
+    const request = { path, origin:new URL(url).origin, method, body: options.body ? JSON.parse(options.body) : null, signal: options.signal, result, finished: false };
     requests.push(request);
     // Aborted reads remain manually settleable to exercise late completions.
     return result.promise;
@@ -178,6 +180,7 @@ function harness(t) {
   vm.runInNewContext(clientSource, {
     window, document: { body: {} }, URL, URLSearchParams, AbortController, AbortSignal,
     fetch, EventSource: SyntheticEventSource, console,
+    localStorage, location:{origin:'http://127.0.0.1:50759'}, CustomEvent:class {constructor(type,options){this.type=type;this.detail=options?.detail;}},
     setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout,
   }, { filename: clientUrl.pathname });
   assert(plugin, 'The real client module must register');
@@ -195,6 +198,14 @@ function harness(t) {
     try { return entry.component({ renderFactorySlot: () => null, ...props }); } finally { hookStorage = null; }
   }
   const sidebar = () => render('sidebar.workspaces', { wide: true });
+  function settings() {
+    if (!hooks.has(plugin.SettingsPanel)) hooks.set(plugin.SettingsPanel, []);
+    hookStorage = hooks.get(plugin.SettingsPanel); hookIndex = 0;
+    try {
+      const wrapper = plugin.SettingsPanel();
+      return wrapper.type(wrapper.props);
+    } finally { hookStorage = null; }
+  }
   const find = (tree, property, value) => nodes(tree, node => Object.hasOwn(node.props, property) && (value === undefined || node.props[property] === value))[0] ?? null;
   const form = () => nodes(sidebar(), node => node.type === 'form')[0] ?? null;
   const reads = () => requests.filter(request => request.method === 'GET');
@@ -214,7 +225,10 @@ function harness(t) {
     for (const listener of listeners.get('message') ?? []) listener({ origin: diagnostic.frameOrigin, source: contentWindow, data: { version: 1, ...value } });
   }
   return {
-    diagnostic, clock, reads, writes, respond, fail, form, sent,
+    diagnostic, clock, reads, writes, respond, fail, form, sent, settings,
+    settingsPort(value) { nodes(settings(),node=>node.type==='input'&&node.props.type==='number')[0].props.onChange({target:{value}}); },
+    saveSettings() { return nodes(settings(),node=>node.type==='button'&&text(node)==='保存并应用')[0].props.onClick(); },
+    storedSettings:()=>JSON.parse(storage.get('dsh-herdr-live-prefs')||'{}'),
     state: () => plain(diagnostic.snapshot()),
     emit: value => { assert(streams.length, 'An active synthetic stream is required'); streams.at(-1).emit(value); },
     async open(value = snapshot()) { diagnostic.show(); respond(reads().at(-1), { snapshot: value }); await settle(); },
@@ -241,6 +255,29 @@ function harness(t) {
 }
 
 const stateTest = (name, run) => test(name, { timeout: 3000 }, run);
+
+stateTest('Herdr saves a changed port through the current proxy before updating browser preferences', async t => {
+  const f = harness(t);
+  f.settingsPort('50888'); f.saveSettings();
+  const save = f.writes().find(request => request.path === '/__dsh_herdr/config');
+  assert.equal(save.origin, 'http://127.0.0.1:50760');
+  assert.equal(save.body.proxyPort, 50888);
+  assert.equal(f.storedSettings().proxyPort, undefined);
+  f.respond(save, {ok:true, restartRequired:true, message:'代理端口已保存，重启后生效。'});
+  await settle();
+  assert.equal(f.storedSettings().proxyPort, 50888);
+  assert.match(text(f.settings()), /重启后生效/);
+});
+
+stateTest('a failed Herdr configuration save preserves the old connection and the edited form', async t => {
+  const f = harness(t);
+  f.settingsPort('50888'); f.saveSettings();
+  f.fail(f.writes().find(request => request.path === '/__dsh_herdr/config'), 'proxy unavailable');
+  await settle();
+  assert.equal(f.storedSettings().proxyPort, undefined);
+  assert.equal(nodes(f.settings(),node=>node.type==='input'&&node.props.type==='number')[0].props.value, '50888');
+  assert.match(text(f.settings()), /proxy unavailable/);
+});
 
 stateTest('a confirmed create finishes its form when refresh fails; refresh retry does not create again', async t => {
   const h = harness(t);

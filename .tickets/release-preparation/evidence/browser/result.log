@@ -1,0 +1,39 @@
+Real DSH 0.2.1-rc.5 / isolated Web profile / synthetic Ovis upstream
+{
+  "autoParentMatches": true,
+  "failed": {
+    "browserPort": 64192,
+    "editedPort": "64193",
+    "savedPort": 64192
+  },
+  "saved": {
+    "prefs": {
+      "frameOrigin": "http://127.0.0.1:64193",
+      "upstreamOrigin": "http://127.0.0.1:64190",
+      "parentOrigin": "http://127.0.0.1:64191",
+      "proxyPort": 64193
+    },
+    "posts": [
+      {
+        "url": "http://127.0.0.1:64192/__dsh_herdr/config",
+        "browserPort": 64192
+      },
+      {
+        "url": "http://127.0.0.1:64192/__dsh_herdr/config",
+        "browserPort": 64192
+      }
+    ],
+    "errors": [],
+    "storedPort": 64193
+  },
+  "restarted": {
+    "generation": 2,
+    "browserPort": 64193,
+    "proxyPort": 64193,
+    "parentMatches": true,
+    "connection": "已连通 Ovis（HTTP 200）",
+    "errors": []
+  }
+}
+Screenshots inspected: herdr-port-save.png, herdr-port-restarted.png (user-facing outputs)
+Browser task closed; test DSH and upstream stopped.

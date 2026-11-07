@@ -66,7 +66,7 @@ export function createHerdrClient(require, sources) {
       const pageOrigin=(typeof location!=='undefined'&&isLoopbackOrigin(location.origin))?location.origin:stored.parentOrigin;
       const [form,setForm]=React.useState({
         upstreamOrigin:stored.upstreamOrigin,
-        parentOrigin:stored.parentOrigin||pageOrigin,
+        parentOrigin:pageOrigin,
         proxyPort:stored.proxyPort,
       });
       const [busy,setBusy]=React.useState('');
@@ -80,7 +80,7 @@ export function createHerdrClient(require, sources) {
           setStatus({ok:result.ok!==false,text:result.text||result.message||'完成'});
           return result;
         }catch(error){
-          setStatus({ok:false,text:error.message});
+          setStatus({ok:false,text:kind==='apply'?'未确认保存成功，请重试：'+error.message:error.message});
         }finally{setBusy('');}
       }
       return h('div',{className:'dsh-plugin-settings','data-plugin-settings':'herdr-live'},
@@ -97,7 +97,7 @@ export function createHerdrClient(require, sources) {
           h('label',{className:'field'},'DSH 父页面来源',
             h('input',{type:'text',value:form.parentOrigin,placeholder:pageOrigin,onChange:event=>update({parentOrigin:event.target.value.trim()})}),
           ),
-          h('p',{className:'hint'},'父页面一般应与当前 DSH 窗口同源（现在是 '+pageOrigin+'）。代理地址将是 '+derivedFrame+'。只接受本机 HTTP 回环地址。'),
+          h('p',{className:'hint'},'父页面一般应与当前 DSH 窗口同源（现在是 '+pageOrigin+'）。代理地址将是 '+derivedFrame+'。只接受本机 HTTP 回环地址。启动配置和环境变量优先于此处保存的设置。'),
         ),
         h('div',{className:'row'},
           h('button',{type:'button',disabled:!!busy,onClick:()=>void run('test',async()=>{
@@ -111,11 +111,11 @@ export function createHerdrClient(require, sources) {
             const proxyPort=Number(form.proxyPort);
             if(!Number.isInteger(proxyPort)||proxyPort<=0||proxyPort>65535)throw new Error('代理端口无效');
             const frameOrigin=`http://127.0.0.1:${proxyPort}`;
-            const saved=writeHerdrPrefs({upstreamOrigin:form.upstreamOrigin,parentOrigin:form.parentOrigin,proxyPort,frameOrigin});
-            let remote={};
-            try{remote=await herdrConfigRequest('config',{method:'POST',body:saved});}
-            catch(error){remote={ok:false,message:'已保存在本机，但当前代理未响应：'+error.message,restartRequired:true};}
-            onApplied?.(saved);
+            const saved={...readHerdrPrefs(),upstreamOrigin:form.upstreamOrigin,parentOrigin:form.parentOrigin,proxyPort,frameOrigin};
+            const remote=await herdrConfigRequest('config',{method:'POST',body:saved});
+            if(!remote.ok)throw new Error(remote.message||'Herdr 代理未确认保存');
+            writeHerdrPrefs(saved);
+            if(!remote.restartRequired)onApplied?.(saved);
             return {ok:remote.ok!==false,text:remote.message||(remote.restartRequired?'已保存。代理端口变更需重启 DSH 后生效。':'已应用接入地址。')};
           })},busy==='apply'?'应用中…':'保存并应用'),
           h('button',{type:'button',disabled:!!busy,onClick:()=>void run('reload',async()=>{

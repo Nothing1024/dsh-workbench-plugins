@@ -1,4 +1,4 @@
-name: Check and pack (draft)
+name: Check and pack
 
 on:
   workflow_dispatch:
@@ -28,6 +28,8 @@ jobs:
         run: npm run pack:dry-run
       - name: Changesets status
         run: npm run changeset -- status
+      - name: Verify packed installation
+        run: npm run verify:install
       - name: Installer plans only
         run: |
           node scripts/install.mjs --source local --profile ci --dry-run

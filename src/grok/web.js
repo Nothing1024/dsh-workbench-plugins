@@ -1,5 +1,5 @@
 // Reused from grokbot-plugin/lib/grokbot/web.js (dsh-plugin-grokbot 0.1.0, MIT).
-// The workspace source remains read-only; local safety adaptations are noted below.
+// Adapted for DSH Workbench Suite; see THIRD_PARTY_NOTICES.md.
 /**
  * The Grok Bots console as a DSH web surface.
  *

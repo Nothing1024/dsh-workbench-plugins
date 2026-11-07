@@ -29,7 +29,12 @@ check(manifest.dsh?.client?.inject?.includes('@deepseek-ai/dsh-client-ui-plugin-
 check(JSON.stringify(manifest.dsh?.client?.external) === JSON.stringify(['react', 'react-dom']), 'Client externals must come from the host');
 check(!Object.keys({...manifest.dependencies, ...manifest.peerDependencies}).some(name => name.startsWith('dsh-plugin-')), 'Internal modules must not depend on other workbench packages');
 check(manifest.dsh?.bundle?.patch === './cordis.patch.yml', 'Missing activation patch');
-check(typeof manifest.license === 'string' && manifest.license.length > 0, 'Missing license declaration');
+check(manifest.license === 'MIT', 'Expected the MIT license selected for this release');
+check(!/REPLACE_ME|PLACEHOLDER/i.test(JSON.stringify({repository:manifest.repository, homepage:manifest.homepage, bugs:manifest.bugs})), 'Release metadata contains placeholders');
+check(manifest.repository?.url === 'git+https://github.com/Nothing1024/dsh-workbench-plugins.git', 'Missing release repository URL');
+check(manifest.publishConfig?.access === 'public' && manifest.publishConfig?.registry === 'https://registry.npmjs.org/', 'Missing public npm registry declaration');
+const license = await readFile(join(root, 'LICENSE'), 'utf8');
+check(license.startsWith('MIT License\n') && license.includes('Copyright (c) 2026 Nothing1024') && !/PLACEHOLDER|待确认/.test(license), 'Missing final MIT license and copyright notice');
 for (const file of ['index.js', 'src/client.js', 'src/sources/client.js', 'src/herdr/index.js', 'src/grok/index.js', 'dist/client.js', 'cordis.patch.yml']) {
   try { await access(join(root, file)); } catch { failures.push(`Missing ${file}`); }
 }

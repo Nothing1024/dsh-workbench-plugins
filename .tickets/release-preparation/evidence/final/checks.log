@@ -1,0 +1,213 @@
+COMMAND: npm run check
+
+> dsh-plugin-workbench-suite@0.1.0 check
+> npm run build && node scripts/check.mjs
+
+
+> dsh-plugin-workbench-suite@0.1.0 build
+> node scripts/build.mjs
+
+Built one workbench client bundle.
+check passed: 34 JavaScript/MJS files; one package, one host entry and one client factory.
+
+COMMAND: npm test
+
+> dsh-plugin-workbench-suite@0.1.0 pretest
+> npm run build
+
+
+> dsh-plugin-workbench-suite@0.1.0 build
+> node scripts/build.mjs
+
+Built one workbench client bundle.
+
+> dsh-plugin-workbench-suite@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ Herdr saves a changed port through the current proxy before updating browser preferences (8.473542ms)
+✔ a failed Herdr configuration save preserves the old connection and the edited form (3.857292ms)
+✔ a confirmed create finishes its form when refresh fails; refresh retry does not create again (6.160292ms)
+✔ a confirmed create without pane metadata closes its form and follows the pane when SSE catches up (7.881458ms)
+✔ late created-pane metadata cannot steal a newer project choice in the sidebar or original Ovis (5.34825ms)
+✔ a late initial GET error preserves healthy SSE connectivity and permits management (3.09625ms)
+✔ a matching child cancellation clears pending navigation without a later timeout error (1.950125ms)
+✔ a stale cancellation cannot clear a newer project-selection request (1.193791ms)
+✔ an untagged actual-selection report during roster wait does not cancel the requested project (1.186917ms)
+✔ an old successful GET cannot overwrite a newer SSE snapshot or actual selection (2.153583ms)
+✔ a write completed after leaving Herdr cannot reopen its panel or restore pending navigation (1.904375ms)
+✔ ready and hello report stable actual metadata only to the configured parent (5.431625ms)
+✔ legacy v1 select navigates once, retains its ID through synthetic popstate, and confirms actual metadata (3.117417ms)
+✔ same-pane lens selection clicks the native control once and waits for the actual lens (0.717084ms)
+✔ tab hints wait for original tab and workspace rosters before navigating or acknowledging (6.176083ms)
+✔ trusted Back/Forward cancels the latest pending ID before native history handling and prevents replay (1.873167ms)
+✔ trusted pointer and key input cancel pending requests and force an untagged actual report (1.284292ms)
+✔ synthetic popstate while a roster lags preserves pending selection for later confirmation (0.650792ms)
+✔ unavailable roster expires without a false ACK or late navigation (4.550916ms)
+✔ wrong origins, sources, versions and malformed selection messages cannot navigate or receive replies (0.547416ms)
+✔ an invalid explicit parent origin fails closed (0.346917ms)
+✔ selecting another cookie file uses that account and rereads changed file contents (2.997709ms)
+✔ browser memory cache is reused only for the same source and cache policy (29.199375ms)
+✔ refreshing a permissive cache replaces it with a private file (4.912584ms)
+✔ refreshing a symlink cache does not write credentials into its target (2.39775ms)
+✔ disabling disk caching leaves the filesystem untouched (2.043667ms)
+✔ cache invalidation respects a disabled disk cache (3.714583ms)
+✔ drafts belong to each bot and survive source stop/start (19.1085ms)
+✔ a late layout success cannot change state after leaving Grok (6.313958ms)
+✔ a late layout failure cannot change state after leaving Grok (1.920791ms)
+✔ a late transcript success cannot change state after leaving Grok (2.741459ms)
+✔ a late transcript failure cannot change state after leaving Grok (2.832833ms)
+✔ a prior activation layout response cannot replace a restarted source (3.235125ms)
+✔ a prior activation transcript response cannot replace a restarted source (1.640459ms)
+✔ a prior bot response cannot replace the newly selected bot transcript (2.361125ms)
+✔ concurrent sends are deduplicated and a late ack keeps newer drafts and selection (2.671667ms)
+✔ a delayed send ack preserves a new draft even when the user retypes the same text (1.7365ms)
+✔ a successful send remains committed while failed refreshes are visible and retryable (2.341542ms)
+✔ a failed send retains a failed outbox item and exposes the write failure (1.546458ms)
+✔ an unacknowledged send reuses its nonce across retry and source restart, then renews it after success (2.171334ms)
+✔ editing a rejected draft creates a new nonce even when its text returns to the original (1.10125ms)
+✔ send retry identifiers stay separate for bots with identical prompt text (2.769167ms)
+✔ polling preserves loaded history, its pagination cursor, scroll position, and revised entries (2.765083ms)
+✔ a write invalidates a preceding layout success without suppressing fresh reads (2.468958ms)
+✔ a write invalidates a preceding layout failure without suppressing fresh reads (3.960167ms)
+✔ a write invalidates a preceding transcript success without suppressing fresh reads (1.825083ms)
+✔ a write invalidates a preceding transcript failure without suppressing fresh reads (2.8525ms)
+✔ an older page finishing after a tail poll cannot downgrade the same entry revision (1.241459ms)
+✔ entry revisions replace the same version while preserving distinct unversioned entries (1.027667ms)
+✔ dispose cancels polling and ignores unresolved reads and later starts (1.636041ms)
+✔ registers only the authenticated prefix and status does not construct/connect a relay (17.576375ms)
+✔ authorization is required and fails closed for absent, false, non-boolean or throwing guards (6.50725ms)
+✔ rejects cross-origin, same-site, missing Origin, Host spoofing and text/plain CSRF (13.98125ms)
+✔ unknown paths and wrong methods never reach a relay (8.181625ms)
+✔ validates query, identifiers, UTF-8 byte limits and JSON shapes before lazy construction (17.546958ms)
+✔ reuses one lazy relay for compatible layout, bots, transcript, status and fixed mutation commands (7.427ms)
+✔ auth inspection and the relay use the same explicit cookie without exposing its value (2.181917ms)
+✔ manual auth saves privately, survives service restart and can be removed without returning the secret (7.978583ms)
+✔ manual auth accepts an SSO value and rejects unauthorized, foreign-origin and invalid writes (7.345209ms)
+✔ offbox cursors preserve whole pages even when the tail limit is smaller (1.16025ms)
+✔ canonicalizes listener default ports but accepts only a plain trusted origin (2.517791ms)
+✔ uses the verified raw cookie file default and blocks running deletion unless explicitly forced (1.026083ms)
+✔ serializes concurrent group and pin transactions while preserving metadata and missing ids (2.678333ms)
+✔ returns only static errors for relay failures and safely degrades connected status (1.639083ms)
+✔ a failed settings transaction does not poison later updates (1.377334ms)
+✔ dispose cancels queued settings work and blocks late writes from in-flight work (1.700959ms)
+✔ requires a strict stable client nonce before constructing a relay (4.219417ms)
+✔ deduplicates in-flight and successful sends, rejects payload conflicts and scopes nonce by bot (2.120792ms)
+✔ retries a failed send with the original nonce while retaining its payload fingerprint (1.877833ms)
+✔ a browser abort does not release send deduplication before the upstream outcome (1.976333ms)
+✔ a failed old socket cannot deliver messages or close/error events into its replacement (0.850916ms)
+✔ the reused relay close rejects pending RPCs and releases timers without a close event (0.0935ms)
+✔ upload JSON relays uploadAttachment and returns path (17.657042ms)
+✔ upload multipart is accepted with the same upstream args (4.745292ms)
+✔ upload rejects empty, unsupported, oversize and unauthenticated requests (5.154542ms)
+✔ send forwards attachmentPaths and names and fingerprints them (11.528959ms)
+✔ new Herdr preferences can use the current DSH origin instead of a fixed development port (3.495542ms)
+✔ Herdr persists a changed port through its old listener and reads it after restart (44.29325ms)
+Herdr: real Ovis facade http://127.0.0.1:65203 -> http://127.0.0.1:7317
+✔ Herdr startup fills a partial explicit config with the active DSH origin (4.770792ms)
+✔ installer refuses to choose a DSH profile implicitly (52.611333ms)
+✔ local installer plans exactly one package without executing DSH (36.428083ms)
+✔ npm installer plans the single package version and honors an explicit version (64.983833ms)
+✔ invalid source, profile, positional arguments and incomplete values fail before commands (185.233209ms)
+✔ only plain loopback origins and loopback listener are accepted (1.458916ms)
+✔ serves unchanged application bytes and narrowly changes framing policy (21.175666ms)
+✔ paired origin rewrite preserves upstream origin checks and drops credentials (4.200375ms)
+✔ foreign browser origins and unexpected Host never reach upstream (1.746958ms)
+✔ native WebSocket upgrade and text frame cross facade unchanged (12.577416ms)
+✔ foreign-origin WebSocket upgrade is rejected before an upstream connection (2.6525ms)
+✔ origins must be plain loopback HTTP origins (3.122709ms)
+✔ only the three exact scoped routes are owned, with exact parent Origin and facade Host (37.704542ms)
+✔ preflights expose only the parent origin, allowed methods and Content-Type (4.696208ms)
+✔ session reads only local /api/session and constructs upstream headers without browser identity (16.429208ms)
+✔ all eight actions use dedicated upstream routes and only their native payload fields (42.402666ms)
+✔ unsupported actions, spawn flags and invalid field types or lengths never reach upstream (6.840583ms)
+✔ action body is bounded for both content-length and chunked requests, while exactly 16 KiB works (3.316625ms)
+✔ fresh target membership and containing workspace/tab relationships constrain every mutation (18.559458ms)
+✔ upstream JSON error status and body survive, text errors are scoped JSON and redirects are never followed (13.707375ms)
+✔ SSE shares one local observer, forwards snapshots, and closes the socket with the last consumer (659.291875ms)
+✔ session-changed and pane-status coalesce reads and publish accurate enriched snapshot state (86.997959ms)
+✔ sustained in-flight invalidations publish every completed read and retain a trailing read (113.150917ms)
+✔ an incoming newer WS snapshot wins over a stale in-flight refresh (138.93875ms)
+✔ management uses a fresh snapshot even while SSE retains an older target (3.810209ms)
+✔ observation reconnects only while consumed and always repeats observe without attach or input (1157.193875ms)
+✔ SSE heartbeats are comments and do not send application frames upstream (6.409875ms)
+✔ last-consumer removal cancels an in-flight refresh, and channel.close cancels outstanding reads (36.565792ms)
+✔ close ends every SSE response and reports the closed connection state (3.6705ms)
+✔ one installed client registers all three sources and releases module resources (7.382541ms)
+✔ settings navigation opens this plugin detail page and permits the existing fallback without a manager (0.152166ms)
+ℹ tests 109
+ℹ suites 0
+ℹ pass 109
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2442.712542
+
+COMMAND: npm run pack:dry-run
+
+> dsh-plugin-workbench-suite@0.1.0 pack:dry-run
+> npm run build && node scripts/pack-dry-run.mjs
+
+
+> dsh-plugin-workbench-suite@0.1.0 build
+> node scripts/build.mjs
+
+Built one workbench client bundle.
+dsh-plugin-workbench-suite@0.1.0: 24 files
+  - CHANGELOG.md
+  - LICENSE
+  - README.md
+  - THIRD_PARTY_NOTICES.md
+  - cordis.patch.yml
+  - dist/client.js
+  - index.js
+  - package.json
+  - src/client.js
+  - src/grok/auth-config.mjs
+  - src/grok/auth.js
+  - src/grok/client.js
+  - src/grok/index.js
+  - src/grok/relay.js
+  - src/grok/service.mjs
+  - src/grok/web.js
+  - src/herdr/client.js
+  - src/herdr/embed-bridge.js
+  - src/herdr/index.js
+  - src/herdr/prefs.mjs
+  - src/herdr/proxy.mjs
+  - src/herdr/sidebar-channel.mjs
+  - src/settings/client.js
+  - src/sources/client.js
+
+COMMAND: npm run verify:install --
+
+> dsh-plugin-workbench-suite@0.1.0 verify:install
+> npm run build && node scripts/verify-install.mjs --dsh-anchor <DSH_PACKAGE_JSON>
+
+
+> dsh-plugin-workbench-suite@0.1.0 build
+> node scripts/build.mjs
+
+Built one workbench client bundle.
+tarball: one host entry, one client factory, no internal peer packages; resolution passed
+DSH file: exactly one workbench plugin activated; real DSH browser module loader passed
+Herdr: real Ovis facade http://127.0.0.1:65441 -> http://127.0.0.1:65439
+public apply: Herdr proxy starts and Grok routes mount by default; fake upstream and synthetic account passed
+missing-profile and unknown-argument branches rejected; service resources released
+verification artifacts (ignored by Git): <repository>/.tmp/single-install-pz2Chi
+
+COMMAND: npm run changeset --
+
+> dsh-plugin-workbench-suite@0.1.0 changeset
+> changeset status
+
+🦋 changeset v3.0.3
+
+Packages to be bumped:
+
+Release artifact: dsh-plugin-workbench-suite-0.1.0.tgz
+Exact delivered tarball installed offline; one host entry, one browser factory; 24 whitelisted files.
+SHA256: 0052b7dac87f154ebeacda3c658fb063bf0a4772df91f748a9753e961f8af48a
+npm publish <tarball> --dry-run --ignore-scripts --access public --registry=https://registry.npmjs.org/: exit 0 (no upload).
+gitleaks full history, staged diff and extracted tarball: exit 0, zero findings.
+Developer home path and private email scan: 64 working files, 164 historical blobs; zero findings. Reserved example-domain test data excluded.

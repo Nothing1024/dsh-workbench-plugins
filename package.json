@@ -24,12 +24,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/REPLACE_ME/dsh-workbench-plugins.git"
+    "url": "git+https://github.com/Nothing1024/dsh-workbench-plugins.git"
   },
-  "homepage": "https://github.com/REPLACE_ME/dsh-workbench-plugins#readme",
-  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/Nothing1024/dsh-workbench-plugins#readme",
+  "license": "MIT",
   "engines": {
-    "node": ">=22.4.0"
+    "node": ">=22.4.0",
+    "dsh": ">=0.2.1-rc.5 <0.3"
   },
   "exports": {
     ".": "./index.js",
@@ -72,5 +73,13 @@
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
     "esbuild": "0.28.2"
+  },
+  "bugs": {
+    "url": "https://github.com/Nothing1024/dsh-workbench-plugins/issues"
+  },
+  "author": "Nothing1024",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

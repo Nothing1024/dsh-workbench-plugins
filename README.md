@@ -2,19 +2,19 @@
 
 `dsh-plugin-workbench-suite` 把 DSH 会话、Herdr / Ovis 和 Grok bot 放在同一条来源栏里。安装一个包，三个来源默认全部开启，使用同一个版本更新。
 
-当前版本为 0.1.0，尚未发布到 npm；许可证、完整第三方版权通知、npm 账号和正式仓库地址仍待确认。
+版本 0.1.0，采用 [MIT 许可证](LICENSE)，Copyright (c) 2026 Nothing1024。源码仓库：[Nothing1024/dsh-workbench-plugins](https://github.com/Nothing1024/dsh-workbench-plugins)。
 
 ## 安装
 
-运行环境：Node.js 22.4+、可用的 DSH CLI 及其 pnpm。开发构建推荐 Node.js 24 和 npm 10.9+。加载验证依据 DSH 0.2.1-rc.5。
+运行环境：Node.js 22.4+、DSH 0.2.1-rc.5 起的 0.2 系列 Web profile，以及 DSH CLI 使用的 pnpm。Herdr 接入要求本机 HTTP 回环地址。开发构建推荐 Node.js 24 和 npm 10.9+；本地加载验证使用 DSH 0.2.1-rc.5。
 
 正式发布后，使用一条命令安装：
 
 ```bash
-dsh plugin --profile workbench-demo add dsh-plugin-workbench-suite@0.1.0
+dsh plugin --profile web add dsh-plugin-workbench-suite@0.1.0
 ```
 
-安装后重启对应 DSH 窗口。来源栏默认显示「DSH 会话」「Herdr」「Grok bot」。Herdr 的本机代理随插件启动；Ovis 服务尚未启动时，Herdr 页面会显示离线。Grok 在用户打开对应来源后读取列表，不会在插件激活时登录或发送消息。
+`web` 应替换为你正在使用的 Web profile 名称。安装后重启对应 DSH 窗口。来源栏默认显示「DSH 会话」「Herdr」「Grok bot」。Herdr 的本机代理随插件启动；Ovis 服务尚未启动时，Herdr 页面会显示离线。Grok 在用户打开对应来源后读取列表，不会在插件激活时登录或发送消息。
 
 ## 目录与接口
 
@@ -59,10 +59,10 @@ docs/                     安装和发布说明
 在 DSH 侧栏打开「插件」，从已安装列表点开 `dsh-plugin-workbench-suite`，即可在详情页的配置区域切换「工作台来源」「Herdr」「Grok bot」三个分区。Grok 和 Herdr 面板里的「插件设置」也会打开同一详情页。
 
 - 工作台来源：DSH 会话标签显示与顺序；偏好保存在浏览器 localStorage。
-- Herdr：Ovis URL、代理端口、DSH 父页面地址、测试连接和保存。默认上游为 `http://127.0.0.1:7317`，代理端口为 `50760`；父页面地址需设为实际 DSH 地址。修改代理端口后需要重启。
+- Herdr：Ovis URL、代理端口、DSH 父页面地址、测试连接和保存。默认上游为 `http://127.0.0.1:7317`，代理端口为 `50760`；未配置父页面地址时使用当前 DSH 地址。修改代理端口后需要重启。
 - Grok bot：上方「自动读取登录信息」区显示当前来源、登录信息与连接状态；下方可填写完整 Cookie 或 SSO 值，保存并应用、移除手动 Auth。保存后不返回或显示 Auth 原文。
 
-Herdr 偏好保存在 `~/.dsh/herdr-live/prefs.json`；`DSH_HERDR_UPSTREAM`、`DSH_HERDR_PARENT_ORIGIN`、`DSH_HERDR_PROXY_PORT` 可在启动时覆盖默认偏好。Grok 使用用户自己的显式配置、环境变量、cookie 文件或可调试浏览器会话。仓库和 npm 包不包含这些用户数据。
+Herdr 偏好默认保存在 `~/.dsh/herdr-live/prefs.json`，`DSH_HERDR_PREFS_FILE` 可指定独立的偏好文件；`DSH_HERDR_UPSTREAM`、`DSH_HERDR_PARENT_ORIGIN`、`DSH_HERDR_PROXY_PORT` 可在启动时覆盖默认偏好。Grok 使用用户自己的显式配置、环境变量、cookie 文件或可调试浏览器会话。仓库和 npm 包不包含这些用户数据。
 
 ## Grok bot 的 Auth 与状态
 
@@ -86,8 +86,8 @@ Herdr 偏好保存在 `~/.dsh/herdr-live/prefs.json`；`DSH_HERDR_UPSTREAM`、`D
 ```bash
 npm ci --ignore-scripts
 npm run build
-node scripts/install.mjs --source local --profile workbench-demo --dry-run
-node scripts/install.mjs --source local --profile workbench-demo
+node scripts/install.mjs --source local --profile web --dry-run
+node scripts/install.mjs --source local --profile web
 ```
 
 `--profile` 必填，安装器不会默认选择在用的 profile。`--source npm` 使用包名加版本；`--version` 可指定版本，默认读取 package.json。已装旧三包的 profile 应先移除旧工作台包，再安装本包，避免重复界面和端口冲突。安装器不会自动卸载旧包。
@@ -112,4 +112,8 @@ Changesets 只管理这一个包。`npm run version:packages` 会更新版本和
 
 附件资源库和历史附件专用预览尚未接入。当前使用已有 URL / payload 展示历史附件。真实账号操作和真实 Ovis 页面交互需在用户自己的环境中确认。
 
-安装细节见 [安装与契合](docs/安装与契合.md)，发布待补信息见 [发布准备](docs/发布准备.md)，本地检查结果见 [验证结果](docs/验证结果.md)。
+安装细节见 [安装与契合](docs/安装与契合.md)，发布流程见 [发布准备](docs/发布准备.md)，本地检查结果见 [验证结果](docs/验证结果.md)。
+
+## 许可证与来源
+
+本项目以 MIT 许可发布。Grok 复用模块的原包声明和来源记录见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。React、ReactDOM 与 DSH 服务由宿主提供，Ovis / Herdr 应用本体不包含在 npm 包中。
