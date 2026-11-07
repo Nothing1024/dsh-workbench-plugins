@@ -185,14 +185,7 @@ export function createSourcesClient(require) {
           disposeConversation?.();
         };
       });
-      try {
-        ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
-          name: 'settings.plugins.tab', id: 'workbench-sources', order: 12, label: '工作台来源',
-        }, SettingsPanel));
-      } catch (error) {
-        console.warn('[workbench-sources] 宿主设置页不可用', error);
-      }
     }
 
-    return {inject: ['slots', 'layout'], apply, SOURCE_BAR_FACTORY, SOURCE_TAB_SLOT, SourceTab};
+    return {inject: ['slots', 'layout'], apply, SOURCE_BAR_FACTORY, SOURCE_TAB_SLOT, SourceTab, SettingsPanel};
 }

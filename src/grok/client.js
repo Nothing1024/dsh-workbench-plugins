@@ -64,15 +64,6 @@ export function createGrokClient(require, sources) {
       if(!response.ok) throw new Error(data.error || '请求失败（'+response.status+'）');
       return data;
     }
-    function openHostPluginSettings(ctx){
-      try{
-        const list=typeof ctx.slots?.entries==='function'?ctx.slots.entries('sidebar.settings'):ctx.slots?.entriesOfSlot?.('sidebar.settings');
-        const entry=(list||[]).find(candidate=>candidate.store!==undefined);
-        if(entry?.store===undefined)return false;
-        entry.store.create().actions.openSection('plugins');
-        return true;
-      }catch{return false;}
-    }
     const grokSettingsStyles=`
       .dsh-plugin-settings{display:flex;flex-direction:column;gap:16px;max-width:640px;font:var(--dsw-font-xs-13);font-family:var(--dsw-font-family);color:var(--dsw-alias-label-primary)}
       .dsh-plugin-settings h2{margin:0;font:var(--dsw-font-sm-strong-14,600 14px/20px var(--dsw-font-family))}
@@ -839,7 +830,7 @@ export function createGrokClient(require, sources) {
       }
       function Sidebar({wide=true}={}) {
         const s=useStore(),[dialog,setDialog]=React.useState(null),[searchOpen,setSearchOpen]=React.useState(false),[settingsOpen,setSettingsOpen]=React.useState(false),searchRef=React.useRef(null),sideMenu=useMenu();
-        const openGrokSettings=()=>{if(!openHostPluginSettings(ctx))setSettingsOpen(true);};
+        const openGrokSettings=()=>{if(!sources.openSettings?.(ctx))setSettingsOpen(true);};
         React.useEffect(()=>{const onOpen=()=>openGrokSettings();window.addEventListener('dsh-grok-open-settings',onOpen);return()=>window.removeEventListener('dsh-grok-open-settings',onOpen);},[]);
         React.useEffect(()=>{if(searchOpen){const id=requestAnimationFrame(()=>searchRef.current&&searchRef.current.focus());return()=>cancelAnimationFrame(id);}},[searchOpen]);
         React.useEffect(()=>{if(!searchOpen&&!s.query)return;const onKey=event=>{if(event.key==='Escape'){store.setQuery('');setSearchOpen(false);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);},[searchOpen,s.query]);
@@ -924,11 +915,10 @@ export function createGrokClient(require, sources) {
       }
       ctx.slots.inject('main',()=>ctx.slots.register({name:'main',key:ID},Panel));
       ctx.slots.inject(SOURCE_TAB_SLOT,()=>ctx.slots.register({name:SOURCE_TAB_SLOT,id:ID,label:'Grok bot',order:20},props=>h(SourceTab,{...props,sourceId:ID,panelId:ID,label:'Grok bot',icon:({size=15})=>h(Glyph,{name:'bot',size})})));
-      try{ctx.slots.inject('settings.plugins.tab',()=>ctx.slots.register({name:'settings.plugins.tab',id:'grok-workbench',order:18,label:'Grok bot'},GrokSettingsPanel));}catch(error){console.warn('[grok-workbench] 宿主设置页不可用',error);}
       ctx.slots.inject('sidebar.workspaces',()=>{sidebarAvailable=true;syncLayout();return()=>{sidebarAvailable=false;disposeSidebar?.();disposeSidebar=null;};});
       ctx.effect(()=>{const off=ctx.layout.panelInfo.subscribe(syncLayout);syncLayout();return()=>{off();store.stop();disposeSidebar?.();disposeSidebar=null;};});
       ctx.effect(()=>{const refreshAuth=()=>{store.stop();syncLayout();};window.addEventListener('dsh-grok-auth-changed',refreshAuth);return()=>window.removeEventListener('dsh-grok-auth-changed',refreshAuth);});
       ctx.effect(()=>()=>{store.dispose();disposeSidebar?.();});
     }
-    return {inject:['slots','layout'],apply,createGrokStore,mergeEntries};
+    return {inject:['slots','layout'],apply,createGrokStore,mergeEntries,SettingsPanel:GrokSettingsPanel};
 }

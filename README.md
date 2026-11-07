@@ -23,6 +23,7 @@ index.js                  DSH 宿主启动入口
 cordis.patch.yml          唯一插件启用声明
 src/
   client.js               工作台浏览器入口，组合三个内部模块
+  settings/client.js      插件详情页的三个设置分区与设置入口
   sources/client.js       来源栏、DSH 会话标签和显示偏好
   herdr/
     index.js              启动本机代理
@@ -55,7 +56,7 @@ docs/                     安装和发布说明
 
 ## 设置与用户数据
 
-设置页保留「工作台来源」「Herdr」「Grok bot」三个分区，它们属于同一个插件。
+在 DSH 侧栏打开「插件」，从已安装列表点开 `dsh-plugin-workbench-suite`，即可在详情页的配置区域切换「工作台来源」「Herdr」「Grok bot」三个分区。Grok 和 Herdr 面板里的「插件设置」也会打开同一详情页。
 
 - 工作台来源：DSH 会话标签显示与顺序；偏好保存在浏览器 localStorage。
 - Herdr：Ovis URL、代理端口、DSH 父页面地址、测试连接和保存。默认上游为 `http://127.0.0.1:7317`，代理端口为 `50760`；父页面地址需设为实际 DSH 地址。修改代理端口后需要重启。
@@ -65,7 +66,7 @@ Herdr 偏好保存在 `~/.dsh/herdr-live/prefs.json`；`DSH_HERDR_UPSTREAM`、`D
 
 ## Grok bot 的 Auth 与状态
 
-打开「Grok bot → 账号与会话设置」，在「手动 Auth」中填写完整 Cookie（可带 `Cookie:` 前缀）或单独的 SSO 值，点击「保存并应用」。保存后输入框清空，只显示已配置状态。凭据写入 DSH 所在机器的 `~/.dsh/grokbot/cookie.txt`，文件仅当前用户可读写，不进入浏览器 localStorage。
+打开本插件详情页中的「Grok bot」分区，在「手动 Auth」中填写完整 Cookie（可带 `Cookie:` 前缀）或单独的 SSO 值，点击「保存并应用」。保存后输入框清空，只显示已配置状态。凭据写入 DSH 所在机器的 `~/.dsh/grokbot/cookie.txt`，文件仅当前用户可读写，不进入浏览器 localStorage。
 
 「移除手动 Auth」删除上述手动文件；「清除缓存」只清理会话缓存，不删除手动配置。启动配置和环境变量仍优先于手动文件，页面会提示当前来源。保存成功表示配置已写入，登录是否有效以实际机器人连接结果为准。
 

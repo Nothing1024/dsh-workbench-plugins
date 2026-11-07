@@ -3,6 +3,7 @@ export function createHerdrClient(require, sources) {
     const {createPortal}=require('react-dom');
     const {SOURCE_TAB_SLOT, SourceTab} = sources;
     const h=React.createElement;
+    let onSettingsApplied=()=>{};
     const ID='herdr';
     const DEFAULT_FRAME_ORIGIN='http://127.0.0.1:50760';
     const HERDR_PREFS_KEY='dsh-herdr-live-prefs';
@@ -27,15 +28,6 @@ export function createHerdrClient(require, sources) {
       try{
         const url=new URL(value);
         return url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname)&&!url.username&&!url.password&&url.pathname==='/'&&!url.search&&!url.hash;
-      }catch{return false;}
-    }
-    function openHostPluginSettings(ctx){
-      try{
-        const list=typeof ctx.slots?.entries==='function'?ctx.slots.entries('sidebar.settings'):ctx.slots?.entriesOfSlot?.('sidebar.settings');
-        const entry=(list||[]).find(candidate=>candidate.store!==undefined);
-        if(entry?.store===undefined)return false;
-        entry.store.create().actions.openSection('plugins');
-        return true;
       }catch{return false;}
     }
     const settingsStyles=`
@@ -366,7 +358,7 @@ export function createHerdrClient(require, sources) {
         const [form,setForm]=React.useState(null);
         const [settingsOpen,setSettingsOpen]=React.useState(false);
         const [busy,setBusy]=React.useState(false);
-        const openHerdrSettings=()=>{if(!openHostPluginSettings(ctx))setSettingsOpen(true);};
+        const openHerdrSettings=()=>{if(!sources.openSettings?.(ctx))setSettingsOpen(true);};
         const [formError,setFormError]=React.useState('');
         const menuRef=React.useRef(null),formRef=React.useRef(null),formReturn=React.useRef(null);
         React.useEffect(()=>{if(searchOpen){const id=requestAnimationFrame(()=>searchRef.current&&searchRef.current.focus());return()=>cancelAnimationFrame(id);}},[searchOpen]);
@@ -482,9 +474,8 @@ export function createHerdrClient(require, sources) {
         }
       }
       ctx.slots.inject(SOURCE_TAB_SLOT,()=>ctx.slots.register({name:SOURCE_TAB_SLOT,id:ID,order:10,label:'Herdr'},props=>h(SourceTab,{...props,sourceId:ID,panelId:ID,label:'Herdr',icon:Icon})));
-      try{
-        ctx.slots.inject('settings.plugins.tab',()=>ctx.slots.register({name:'settings.plugins.tab',id:'herdr-live',order:16,label:'Herdr'},()=>h(HerdrSettingsPanel,{onApplied:()=>load().catch(error=>publish({error:error.message}))})));
-      }catch(error){console.warn('[herdr-live] 宿主设置页不可用',error);}
+      onSettingsApplied=()=>load().catch(error=>publish({error:error.message}));
+      ctx.effect(()=>()=>{onSettingsApplied=()=>{};});
       ctx.slots.inject('main',()=>ctx.slots.register({name:'main',key:ID},Panel));
       // A sidebar owner can unload while the active main panel remains mounted.
       ctx.slots.inject('sidebar.workspaces',()=>{sidebarAvailable=true;syncLayout();return()=>{sidebarAvailable=false;disposeSidebar?.();disposeSidebar=null;};});
@@ -496,5 +487,5 @@ export function createHerdrClient(require, sources) {
       const diagnostic={show:()=>ctx.layout.selectPanel(ID),back:()=>ctx.layout.selectPanel(null),frameOrigin:getFrameOrigin(),selectPane:choosePane,selectWorkspace:chooseWorkspace,snapshot:()=>({activePanelId:ctx.layout.panelInfo.getSnapshot().activePanelId,mounted,frameOrigin:getFrameOrigin(),frameSrc:frame?.getAttribute('src')??null,frameMounted:frame!==null,frameLoads,frameReady,nativeSidebarActive:Boolean(disposeSidebar),counts:{workspaces:state.snapshot.workspaces.length,tabs:state.snapshot.tabs.length,panes:state.snapshot.panes.length},selection:state.selection,pending:state.pending,connection:state.connection,navigationEntries:ctx.slots.entriesOfSlot('sidebar.panellist').map(entry=>({id:entry.options.id??null,order:entry.options.order??0}))})};
       ctx.effect(()=>{window.addEventListener('message',message);window.__HERDR_LIVE__=diagnostic;return()=>{disposed=true;clearTimeout(pendingTimer);window.removeEventListener('message',message);stopData();disposeSidebar?.();if(window.__HERDR_LIVE__===diagnostic)delete window.__HERDR_LIVE__;};});
     }
-    return {inject:['slots','layout'],apply};
+    return {inject:['slots','layout'],apply,SettingsPanel:()=>h(HerdrSettingsPanel,{onApplied:onSettingsApplied})};
 }

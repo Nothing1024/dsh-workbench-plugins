@@ -25,6 +25,7 @@ check(manifest.private !== true && manifest.workspaces === undefined, 'The root 
 check(manifest.main === 'index.js' && manifest.exports?.['.'] === './index.js', 'Missing host entry');
 check(manifest.exports?.['./client'] === './dist/client.js', 'Missing built client entry');
 check(manifest.dsh?.client?.platform === 'web', 'Missing DSH web client declaration');
+check(manifest.dsh?.client?.inject?.includes('@deepseek-ai/dsh-client-ui-plugin-manager'), 'Plugin details settings require the DSH plugin manager');
 check(JSON.stringify(manifest.dsh?.client?.external) === JSON.stringify(['react', 'react-dom']), 'Client externals must come from the host');
 check(!Object.keys({...manifest.dependencies, ...manifest.peerDependencies}).some(name => name.startsWith('dsh-plugin-')), 'Internal modules must not depend on other workbench packages');
 check(manifest.dsh?.bundle?.patch === './cordis.patch.yml', 'Missing activation patch');
