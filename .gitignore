@@ -18,7 +18,3 @@ runtime/
 *.key
 
 dist/
-
-# ticket-workflow 生成物与搜索可见性
-spec-view.html
-!.tickets/
