@@ -68,8 +68,8 @@ export function createGrokClient(require, sources) {
       .dsh-plugin-settings{display:flex;flex-direction:column;gap:16px;max-width:640px;font:var(--dsw-font-xs-13);font-family:var(--dsw-font-family);color:var(--dsw-alias-label-primary)}
       .dsh-plugin-settings h2{margin:0;font:var(--dsw-font-sm-strong-14,600 14px/20px var(--dsw-font-family))}
       .dsh-plugin-settings .lead{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.55}
-      .dsh-plugin-settings fieldset{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:14px 16px;margin:0;display:flex;flex-direction:column;gap:12px;background:var(--dsw-alias-bg-layer-1)}
-      .dsh-plugin-settings legend{padding:0 6px;color:var(--dsw-alias-label-secondary);font-size:12px}
+      .dsh-plugin-settings .grok-settings-card{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:14px 16px;margin:0;display:flex;flex-direction:column;gap:12px;background:var(--dsw-alias-bg-layer-1)}
+      .dsh-plugin-settings .grok-settings-card h3{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;font-weight:500}
       .dsh-plugin-settings .hint{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5;margin:0}
       .dsh-plugin-settings .row{display:flex;flex-wrap:wrap;gap:8px}
       .dsh-plugin-settings button{appearance:none;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:inherit;cursor:pointer;font:inherit}
@@ -121,8 +121,8 @@ export function createGrokClient(require, sources) {
       return h('div',{className:'dsh-plugin-settings','data-plugin-settings':'grok-workbench'},
         h('style',null,grokSettingsStyles),
         h('header',null,h('h2',null,'Grok bot'),h('p',{className:'lead'},'手动配置 Grok bot 的 Auth，或继续使用自动会话检测。')),
-        h('fieldset',null,
-          h('legend',null,'手动 Auth'),
+        h('section',{className:'grok-settings-card',role:'group','aria-label':'手动 Auth'},
+          h('h3',null,'手动 Auth'),
           h('label',{className:'auth-field'},'Grok bot Auth',
             h('input',{type:'password',value:manualAuth,autoComplete:'off',spellCheck:false,'aria-label':'Grok bot Auth',placeholder:auth?.manualConfigured?'已保存；填写新 Auth 可替换':'Cookie: sso=… 或单独的 SSO 值',onChange:event=>setManualAuth(event.target.value)}),
           ),
@@ -142,8 +142,8 @@ export function createGrokClient(require, sources) {
             })},busy==='remove'?'移除中…':'移除手动 Auth'),
           ),
         ),
-        h('fieldset',null,
-          h('legend',null,'会话状态'),
+        h('section',{className:'grok-settings-card',role:'group','aria-label':'会话状态'},
+          h('h3',null,'会话状态'),
           h('dl',null,
             h('dt',null,'登录'),h('dd',null,auth? (auth.signedIn?'已检测到会话':'未检测到会话'):'检测中…'),
             h('dt',null,'来源'),h('dd',null,auth?.sourceLabel||auth?.source||'—'),
