@@ -1,6 +1,6 @@
 # 发布准备 Spec
 
-> Version: 0.1.0 | Date: 2026-11-07 | Status: InProgress | Board: tickets
+> Version: 0.1.0 | Date: 2026-11-07 | Status: Done | Board: tickets
 
 ## 0. 一页纸人话摘要
 

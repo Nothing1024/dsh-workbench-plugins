@@ -211,3 +211,10 @@ SHA256: 0052b7dac87f154ebeacda3c658fb063bf0a4772df91f748a9753e961f8af48a
 npm publish <tarball> --dry-run --ignore-scripts --access public --registry=https://registry.npmjs.org/: exit 0 (no upload).
 gitleaks full history, staged diff and extracted tarball: exit 0, zero findings.
 Developer home path and private email scan: 64 working files, 164 historical blobs; zero findings. Reserved example-domain test data excluded.
+
+Public repository: https://github.com/Nothing1024/dsh-workbench-plugins
+Visibility: PUBLIC; default branch: main; GitHub license recognition: MIT.
+Remote main verified: 6ba509c3a4b7a7740490bbd7f5275289116f3bac
+GitHub Actions: https://github.com/Nothing1024/dsh-workbench-plugins/actions/runs/42353374454
+Conclusion: success (Node 24 / Ubuntu); checks, tests, pack, installation and installer plans passed.
+Npm upload not attempted: existing npm authentication check returned E401; verified tarball delivered locally.
