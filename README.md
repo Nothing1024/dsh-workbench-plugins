@@ -1,65 +1,83 @@
 # DSH 工作台插件
 
-把 DSH 会话、Herdr / Ovis 和 Grok bot 放到同一条工作台来源栏。三个包均为原生 ESM，浏览器入口使用 DSH 的 `__ModuleLoader__`，不需要额外构建。
+`dsh-plugin-workbench-suite` 把 DSH 会话、Herdr / Ovis 和 Grok bot 放在同一条来源栏里。安装一个包，三个来源默认全部开启，使用同一个版本更新。
 
-| 包 | 初始版本 | 职责 |
-| --- | --- | --- |
-| `dsh-plugin-workbench-sources` | 0.1.0 | 来源栏薄壳，只注册「DSH 会话」；浏览器模块导出 `SOURCE_TAB_SLOT` / `SourceTab` |
-| `dsh-plugin-herdr-live` | 0.1.0 | Herdr 项目 / 终端侧栏、Ovis iframe、本机代理与桥接 |
-| `dsh-plugin-grok-workbench` | 0.1.0 | Grok 机器人列表、对话、附件上传与会话设置 |
-
-Herdr 和 Grok 都把来源壳声明为必需的 `peerDependencies`，共用同一份来源栏。Grok 不依赖 Herdr。React、ReactDOM 与官方 DSH UI 插件由宿主提供，不随本包再安装一份。
-
-当前是发布准备版本：尚未执行 npm publish；仓库地址、npm 账号 / scope、许可证和公开范围仍待确认。`repository` / `homepage` 中的 `REPLACE_ME` 与 `LICENSE` 必须在正式发布前替换。
+当前版本为 0.1.0，尚未发布到 npm；许可证、完整第三方版权通知、npm 账号和正式仓库地址仍待确认。
 
 ## 安装
 
-运行插件需要 Node.js 22.4+、可用的 `dsh` CLI 及其 pnpm。开发工具 Changesets 3 要求 Node.js 22.11 / 24 / 26+ 和 npm 10.9+，建议使用 Node.js 24。当前加载契约依据本机 DSH `0.2.1-rc.5` 核对；运行验证使用 Node.js 24。本仓库不会自行修改你的现有 profile。安装脚本必须显式传 `--profile`；以下使用独立的 `workbench-demo`，也可以换成你决定使用的 profile。
+运行环境：Node.js 22.4+、可用的 DSH CLI 及其 pnpm。开发构建推荐 Node.js 24 和 npm 10.9+。加载验证依据 DSH 0.2.1-rc.5。
 
-先进入仓库根目录。默认来源为 `local`，默认组合为 `both`。三种组合：
-
-| 组合 | 安装包 | 来源标签 |
-| --- | --- | --- |
-| `both` | 来源壳 + Herdr + Grok | DSH 会话 / Herdr / Grok bot |
-| `herdr` | 来源壳 + Herdr | DSH 会话 / Herdr |
-| `grok` | 来源壳 + Grok | DSH 会话 / Grok bot |
-
-本地 `file:` 安装：
+正式发布后，使用一条命令安装：
 
 ```bash
-node scripts/install.mjs both --source local --profile workbench-demo --dry-run
-node scripts/install.mjs both --source local --profile workbench-demo
-node scripts/install.mjs herdr --source local --profile workbench-demo
-node scripts/install.mjs grok --source local --profile workbench-demo
+dsh plugin --profile workbench-demo add dsh-plugin-workbench-suite@0.1.0
 ```
 
-npm 安装（需要先完成正式发布，当前无法从 registry 安装这些尚未发布的包）：
+安装后重启对应 DSH 窗口。来源栏默认显示「DSH 会话」「Herdr」「Grok bot」。Herdr 的本机代理随插件启动；Ovis 服务尚未启动时，Herdr 页面会显示离线。Grok 在用户打开对应来源后读取列表，不会在插件激活时登录或发送消息。
 
-```bash
-node scripts/install.mjs both --source npm --profile workbench-demo --version 0.1.0 --dry-run
-node scripts/install.mjs both --source npm --profile workbench-demo --version 0.1.0
-node scripts/install.mjs herdr --source npm --profile workbench-demo --version 0.1.0
-node scripts/install.mjs grok --source npm --profile workbench-demo --version 0.1.0
+## 目录与接口
+
+```text
+index.js                  DSH 宿主启动入口
+cordis.patch.yml          唯一插件启用声明
+src/
+  client.js               工作台浏览器入口，组合三个内部模块
+  sources/client.js       来源栏、DSH 会话标签和显示偏好
+  herdr/
+    index.js              启动本机代理
+    client.js             Herdr 侧栏和 Ovis 页面
+    proxy.mjs             HTTP / WebSocket 转发与接入配置
+    sidebar-channel.mjs   项目、标签和终端管理
+    embed-bridge.js       页面选择同步
+    prefs.mjs             接入地址与端口偏好
+  grok/
+    index.js              注册 Grok 服务
+    client.js             机器人列表、对话和上传界面
+    service.mjs           已认证的 DSH 路由
+    auth.js               用户凭据读取与缓存
+    relay.js              Grok 连接与命令
+    web.js                机器人、分组与历史数据处理
+dist/client.js            构建出的单个浏览器模块
+scripts/                  构建、安装、检查与打包验证
+tests/                    离线测试
+docs/                     安装和发布说明
 ```
 
-脚本会先打印一条完整的 `dsh plugin --profile … add …` 命令，再调用 DSH。npm 版本默认读取各包当前版本，也可通过 `--version` 或 `DSH_WORKBENCH_PLUGINS_VERSION` 固定；不使用浮动 `latest`。`--dry-run` 只打印，不安装。不传 `--profile` 会直接报错。
+包根目录导出 `apply(ctx, config)`；`./client` 指向构建后的浏览器模块。内部模块通过相对引用组合，没有工作台相关的 npm 依赖或 peer 依赖。React、ReactDOM 和 DSH 界面服务由宿主提供。
 
-安装组合只添加所列包，不会卸载其它包；例如在已装 both 的 profile 上再装 grok，不会自动移除 Herdr。装完重启对应 DSH 窗口。不要在同一 profile 混装 `*-ui-opt` 预览包。
+| 功能 | 位置 / 接口 |
+|---|---|
+| 来源栏 | `src/sources/`；内部共享 `SOURCE_TAB_SLOT` 和 `SourceTab` |
+| Herdr | `src/herdr/`；`/__dsh_herdr/` 下的健康、配置、会话、事件与管理接口 |
+| Grok | `src/grok/`；`/__dsh_grok/api/` 下的机器人、对话、上传与认证接口 |
 
-## 设置
+## 设置与用户数据
 
-入口为 **设置 → 内置插件**。宿主槽位不可用时，Herdr 标题栏设置按钮 / Grok「更多 → 插件设置」提供插件内面板。
+设置页保留「工作台来源」「Herdr」「Grok bot」三个分区，它们属于同一个插件。
 
-- **工作台来源**：显示「DSH 会话」标签、标签顺序；偏好保存在浏览器 localStorage。
-- **Herdr**：Ovis URL（默认 `http://127.0.0.1:7317`）、代理端口（默认 `50760`）、DSH 父页面 origin、测试连接 / 保存 / 重连。父页面 origin 应填实际 DSH 地址，默认值沿用预览地址 `http://127.0.0.1:50759`。只接受本机 HTTP 回环地址；改代理端口后需要重启 DSH。
-- **Grok bot**：检测 / 重新加载 / 清除本地会话缓存、打开 grok.com 登录页、中继状态。界面不会显示 cookie 值。
+- 工作台来源：DSH 会话标签显示与顺序；偏好保存在浏览器 localStorage。
+- Herdr：Ovis URL、代理端口、DSH 父页面地址、测试连接和保存。默认上游为 `http://127.0.0.1:7317`，代理端口为 `50760`；父页面地址需设为实际 DSH 地址。修改代理端口后需要重启。
+- Grok bot：检测、重新加载和清除用户的本地会话缓存，打开 grok.com 登录页；界面不展示 cookie 内容。
 
-Herdr 偏好使用 `~/.dsh/herdr-live/prefs.json`；启动环境变量 `DSH_HERDR_UPSTREAM`、`DSH_HERDR_PARENT_ORIGIN`、`DSH_HERDR_PROXY_PORT` 优先。Grok 读取显式配置 / `GROK_COOKIE` / `GROK_SSO`、用户 cookie 文件、可调试浏览器、12 小时缓存。仓库不包含这些用户数据。
+Herdr 偏好保存在 `~/.dsh/herdr-live/prefs.json`；`DSH_HERDR_UPSTREAM`、`DSH_HERDR_PARENT_ORIGIN`、`DSH_HERDR_PROXY_PORT` 可在启动时覆盖默认偏好。Grok 使用用户自己的显式配置、环境变量、cookie 文件或可调试浏览器会话。仓库和 npm 包不包含这些用户数据。
 
-## 开发与检查
+## 本地开发
 
 ```bash
 npm ci --ignore-scripts
+npm run build
+node scripts/install.mjs --source local --profile workbench-demo --dry-run
+node scripts/install.mjs --source local --profile workbench-demo
+```
+
+`--profile` 必填，安装器不会默认选择在用的 profile。`--source npm` 使用包名加版本；`--version` 可指定版本，默认读取 package.json。已装旧三包的 profile 应先移除旧工作台包，再安装本包，避免重复界面和端口冲突。安装器不会自动卸载旧包。
+
+修改 `src/` 后运行 `npm run build`，再重新安装本地插件并重启。构建把三个界面模块组合成一个 DSH 浏览器模块；npm 用户安装已构建的内容。
+
+## 检查和版本
+
+```bash
 npm run check
 npm test
 npm run pack:dry-run
@@ -67,22 +85,12 @@ npm run verify:install
 npm run changeset -- status
 ```
 
-每包保留 `main`、`./client` 和 `./package.json` 导出。`dsh.bundle` 指向包内激活 patch；来源壳和两业务包必须作为相应组合启用。DSH 客户端的 `require('dsh-plugin-workbench-sources')` 查找浏览器模块表，不能替换成 Node 的主入口。详见 [安装与契合](docs/安装与契合.md)。
+`verify:install` 使用独立目录验证 tarball 安装、公开宿主入口、浏览器入口和默认服务启动。测试仅使用假账号和本机临时服务。可传 `-- --dsh-anchor /绝对路径/@deepseek-ai/dsh/package.json` 增加真实 DSH 安装与模块加载器验证，不操作在用 profile。
 
-修改 JS / MJS 无须编译，但 DSH 的 `file:` 安装可能是快照：修改后重新安装并重启。测试使用本地假服务 / VM，不连接真实 Grok 账号，不写你的 DSH 配置。
+Changesets 只管理这一个包。`npm run version:packages` 会更新版本和 changelog；正式发布命令为 `npm run release:publish`。CI 只做构建、测试和打包检查。
 
-版本管理使用 Changesets，三包在 fixed 组内共同递增，初始均为 `0.1.0`：
+## 当前范围
 
-```bash
-npm run changeset
-npm run version:packages
-```
+附件资源库和历史附件专用预览尚未接入。当前使用已有 URL / payload 展示历史附件。真实账号操作和真实 Ovis 页面交互需在用户自己的环境中确认。
 
-第二条命令会实际改动版本与 changelog，提交前检查 diff。本次整理没有执行它，也未生成新的发布版本。GitHub Actions 草稿只运行检查、离线测试和 pack dry-run，没有发布、push 或建远端操作。发布前所需决定见 [发布准备](docs/发布准备.md)。
-
-## 已知未完成
-
-- grok.com 附件资源库（`attachUpload`）尚未接入。
-- 历史附件没有专用预览代理；当前按已有 URL / payload 展示。
-- 改代理端口需要重启 DSH。
-- 许可证与第三方版权通知仍需最终确认。
+安装细节见 [安装与契合](docs/安装与契合.md)，发布待补信息见 [发布准备](docs/发布准备.md)，本地检查结果见 [验证结果](docs/验证结果.md)。

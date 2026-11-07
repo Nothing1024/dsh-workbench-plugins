@@ -7,8 +7,8 @@ import vm from 'node:vm';
 // Load the shipped factory without a browser or plugin application. The VM has
 // no fetch, sockets, credential resolver, or real timers. All I/O is deferred
 // data supplied by the tests, including responses that finish after departure.
-const clientUrl = new URL('../packages/grok-workbench/client.js', import.meta.url);
-const clientSource = readFileSync(clientUrl, 'utf8');
+const clientUrl = new URL('../src/grok/client.js', import.meta.url);
+const clientSource = readFileSync(clientUrl, 'utf8').replace('export function createGrokClient', 'function createGrokClient') + "\nwindow.__ModuleLoader__.load({id:'grok', factory:require=>createGrokClient(require, {SOURCE_TAB_SLOT:'offline.source-tabs', SourceTab() {}})});";
 const plain = value => JSON.parse(JSON.stringify(value));
 const settle = () => nextTurn();
 const stateTest = (name, run) => test(name, { timeout: 3000 }, run);
@@ -18,12 +18,11 @@ function loadClient() {
   const window = {
     __ModuleLoader__: {
       load(module) {
-        assert.equal(module.id, 'dsh-plugin-grok-workbench');
+        assert.equal(module.id, 'grok');
         assert.equal(plugin, undefined, 'Only one client factory may register');
         plugin = module.factory(name => {
           if (name === 'react') return { createElement() { throw new Error('Store tests must not render React'); } };
           if (name === 'react-dom') return { createPortal() { throw new Error('Store tests must not render portals'); } };
-          if (name === 'dsh-plugin-workbench-sources') return { SOURCE_TAB_SLOT: 'offline.source-tabs', SourceTab() {} };
           throw new Error('Unexpected dependency in offline Grok fixture: ' + name);
         });
       },

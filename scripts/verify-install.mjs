@@ -1,116 +1,125 @@
 #!/usr/bin/env node
-// Offline tarball installation + package/browser resolution smoke.
-// Optional --dsh-anchor /absolute/path/to/@deepseek-ai/dsh/package.json also
-// checks real DSH local file: installs in a new isolated home, never a live profile.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, writeFile, realpath} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import http from 'node:http';
 import vm from 'node:vm';
-
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--dsh-anchor')) throw new Error('Usage: node scripts/verify-install.mjs [--dsh-anchor /absolute/path/to/dsh/package.json]');
 const anchor = args.length ? resolve(args[1]) : null;
-const directories = ['workbench-sources', 'herdr-live', 'grok-workbench'];
-const combinations = {both: directories, herdr: directories.slice(0, 2), grok: [directories[0], directories[2]]};
-const manifests = new Map(await Promise.all(directories.map(async directory => [directory, JSON.parse(await readFile(join(root, 'packages', directory, 'package.json'), 'utf8'))])));
-const tmpRoot = join(root, '.tmp');
-await mkdir(tmpRoot, {recursive: true});
-const work = await mkdtemp(join(tmpRoot, 'install-verify-'));
-const packs = join(work, 'packs');
-await mkdir(packs);
-
-function run(command, commandArgs, cwd, env = process.env) {
-  const result = spawnSync(command, commandArgs, {cwd, env, encoding: 'utf8', timeout: 120_000, maxBuffer: 4 * 1024 * 1024});
+const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+const tmp = join(root, '.tmp');
+await mkdir(tmp, {recursive:true});
+const work = await mkdtemp(join(tmp, 'single-install-'));
+function run(command, argv, cwd, env = process.env) {
+  const result = spawnSync(command, argv, {cwd, env, encoding:'utf8', timeout:120000, maxBuffer:4*1024*1024});
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(result.status, 0, `${command} failed:\n${result.stdout}\n${result.stderr}`);
   return result.stdout;
 }
-
-const tarballs = new Map();
-for (const directory of directories) {
-  const output = run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', packs], join(root, 'packages', directory));
-  tarballs.set(directory, join(packs, JSON.parse(output)[0].filename));
-}
-
-let dshBoot;
-let dshClient;
+const pack = JSON.parse(run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', work], root))[0];
+const tarball = join(work, pack.filename);
+const installDir = join(work, 'npm');
+await mkdir(installDir);
+await writeFile(join(installDir, 'package.json'), JSON.stringify({name:'workbench-offline-verify', private:true}));
+run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', tarball], installDir);
+let dshBoot, dshClient;
 if (anchor) {
-  const dshRequire = createRequire(anchor);
-  dshBoot = await import(pathToFileURL(dshRequire.resolve('@deepseek-ai/dsh-app-boot')).href);
-  dshClient = dshRequire.resolve('@deepseek-ai/dsh-client-modules/client');
+  const req = createRequire(anchor);
+  dshBoot = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-app-boot')).href);
+  dshClient = req.resolve('@deepseek-ai/dsh-client-modules/client');
 }
-
-async function verifyResolution(directory, combo) {
-  const selected = combinations[combo];
+async function verifyResolution(directory) {
   const req = createRequire(join(directory, 'package.json'));
-  const sourceName = manifests.get('workbench-sources').name;
-  const sourceManifestPath = await realpath(req.resolve(sourceName + '/package.json'));
-  const table = new Map();
-  const cache = new Map();
-  const seed = {react: {createElement() {}}, 'react-dom': {createPortal() {}}};
-  const target = {load(module) { assert.ok(!table.has(module.id)); table.set(module.id, module); }};
-  const context = vm.createContext({window: {__ModuleLoader__: target}});
-  for (const packageDirectory of selected) {
-    const name = manifests.get(packageDirectory).name;
-    const installedManifest = req.resolve(name + '/package.json');
-    const ownRequire = createRequire(installedManifest);
-    if (name !== sourceName) assert.equal(await realpath(ownRequire.resolve(sourceName + '/package.json')), sourceManifestPath, 'business peers must resolve the same source package');
-    assert.equal(typeof (await import(pathToFileURL(req.resolve(name)).href)).apply, 'function');
-    vm.runInContext(await readFile(req.resolve(name + '/client'), 'utf8'), context, {filename: name + '/client'});
-  }
-  function browserRequire(name) {
-    if (Object.hasOwn(seed, name)) return seed[name];
-    if (cache.has(name)) return cache.get(name);
-    assert.ok(table.has(name), `browser module missing: ${name}`);
-    const exports = table.get(name).factory(browserRequire);
-    cache.set(name, exports);
-    return exports;
-  }
-  for (const packageDirectory of selected) assert.equal(typeof browserRequire(manifests.get(packageDirectory).name).apply, 'function');
-  assert.equal(browserRequire(sourceName).SOURCE_TAB_SLOT, 'workbench.sources');
-  assert.equal(typeof browserRequire(sourceName).SourceTab, 'function');
+  const entry = await import(pathToFileURL(req.resolve(manifest.name)).href);
+  assert.equal(typeof entry.apply, 'function');
+  const registrations = [];
+  const context = vm.createContext({window:{__ModuleLoader__:{load:registration => registrations.push(registration)}}});
+  vm.runInContext(await readFile(req.resolve(manifest.name + '/client'), 'utf8'), context);
+  assert.equal(registrations.length, 1);
+  assert.equal(registrations[0].id, manifest.name);
+  const seed = {react:{createElement() {}}, 'react-dom':{createPortal() {}}};
+  assert.equal(typeof registrations[0].factory(name => { assert.ok(Object.hasOwn(seed, name), name); return seed[name]; }).apply, 'function');
   if (dshClient) {
     let bootstrap;
-    const realContext = vm.createContext({window: {__ModuleLoader__: {load(module) { bootstrap = module; }}}});
-    vm.runInContext(await readFile(dshClient, 'utf8'), realContext);
-    const {ClientModuleSystem} = bootstrap.factory(() => { throw new Error('unexpected bootstrap dependency'); });
-    const facade = {mode: 'queue', pendingQueue: []};
-    const modules = new ClientModuleSystem({manifest: {modules: [], release: 'offline-verify'}, staticModules: seed, registrationTarget: facade, bootstrapModule: {id: bootstrap.id, exports: {}}});
-    for (const registration of table.values()) modules.register(registration);
-    for (const packageDirectory of selected) assert.equal(typeof modules.materialize(manifests.get(packageDirectory).name).exports.apply, 'function');
-    assert.equal(modules.materialize(sourceName).exports.SOURCE_TAB_SLOT, 'workbench.sources');
+    vm.runInNewContext(await readFile(dshClient, 'utf8'), {window:{__ModuleLoader__:{load:registration => {bootstrap = registration;}}}});
+    const {ClientModuleSystem} = bootstrap.factory(() => {throw new Error('Unexpected bootstrap dependency');});
+    const modules = new ClientModuleSystem({manifest:{modules:[], release:'offline'}, staticModules:seed, registrationTarget:{mode:'queue', pendingQueue:[]}, bootstrapModule:{id:bootstrap.id, exports:{}}});
+    modules.register(registrations[0]);
+    assert.equal(typeof modules.materialize(manifest.name).exports.apply, 'function');
   }
+  return entry;
 }
-
-for (const [combo, selected] of Object.entries(combinations)) {
-  const installDir = join(work, 'npm-' + combo);
-  await mkdir(installDir);
-  await writeFile(join(installDir, 'package.json'), JSON.stringify({name: 'offline-' + combo, private: true}));
-  run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--package-lock=false', ...selected.map(directory => tarballs.get(directory))], installDir);
-  await verifyResolution(installDir, combo);
-  console.log(`tarball ${combo}: Node entry, shared peer, browser require${dshClient ? ', real DSH module table' : ''} passed`);
-  if (anchor) {
-    const home = join(work, 'dsh-' + combo);
-    const profileName = 'workbench-verify';
-    const env = {...process.env, DSH_HOME: home, DSH_AGENTS_HOME: join(home, 'agents')};
-    run(process.execPath, [join(root, 'scripts/install.mjs'), combo, '--source', 'local', '--profile', profileName], root, env);
-    const profileDir = join(home, 'profiles', profileName);
-    const profile = dshBoot.loadProfileDirectory('workbench-verify', profileDir, anchor, {userLayer: false});
-    assert.deepEqual(profile.skippedBundles, []);
-    const entries = dshBoot.composeEntries(profile.layers.map(layer => layer.patches));
-    for (const packageDirectory of selected) {
-      const name = manifests.get(packageDirectory).name;
-      assert.equal(entries.filter(entry => entry.name === name).length, 1, `${name} must be activated exactly once`);
-    }
-    for (const packageDirectory of directories.filter(directory => !selected.includes(directory))) {
-      assert.equal(entries.filter(entry => entry.name === manifests.get(packageDirectory).name).length, 0);
-    }
-    await verifyResolution(profileDir, combo);
-    console.log(`DSH file: ${combo}: installed and activated exactly ${selected.length} plugins; loader resolution passed`);
-  }
+const installed = await verifyResolution(installDir);
+console.log('tarball: one host entry, one client factory, no internal peer packages; resolution passed');
+if (anchor) {
+  const home = join(work, 'dsh-home');
+  const env = {...process.env, DSH_HOME:home, DSH_AGENTS_HOME:join(home, 'agents')};
+  run(process.execPath, [join(root, 'scripts/install.mjs'), '--source', 'local', '--profile', 'workbench-verify'], root, env);
+  const profileDir = join(home, 'profiles/workbench-verify');
+  const profile = dshBoot.loadProfileDirectory('workbench-verify', profileDir, anchor, {userLayer:false});
+  assert.deepEqual(profile.skippedBundles, []);
+  const entries = dshBoot.composeEntries(profile.layers.map(layer => layer.patches));
+  assert.equal(entries.filter(entry => entry.name === manifest.name).length, 1);
+  assert.equal(entries.filter(entry => /^dsh-plugin-(?:workbench-sources|herdr-live|grok-workbench)$/.test(entry.name)).length, 0);
+  await verifyResolution(profileDir);
+  console.log('DSH file: exactly one workbench plugin activated; real DSH browser module loader passed');
 }
+async function listen(server) {
+  await new Promise((resolve, reject) => {server.once('error', reject); server.listen(0, '127.0.0.1', resolve);});
+  return `http://127.0.0.1:${server.address().port}`;
+}
+async function close(server) {
+  server.closeAllConnections();
+  await new Promise(resolve => server.close(resolve));
+}
+const upstream = http.createServer((_req, res) => {res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({snapshot:{workspaces:[], tabs:[], panes:[]}}));});
+let route;
+const host = http.createServer((req, res) => {
+  if (!route) {res.writeHead(404); res.end(); return;}
+  Promise.resolve(route.handler(req, res)).catch(() => res.destroy());
+});
+const effects = [];
+const ctx = {
+  connection:{authorizeIndex:() => true},
+  webServer:{getOrigin:() => hostOrigin, register(value) {route=value; return () => {route=null;};}},
+  inject(_dependencies, apply) {return apply(this);},
+  effect(apply) {const cleanup=apply(); if (cleanup) effects.push(cleanup); return cleanup;},
+};
+let hostOrigin;
+try {
+  const upstreamOrigin = await listen(upstream);
+  hostOrigin = await listen(host);
+  const reserve = http.createServer();
+  const proxyOrigin = await listen(reserve);
+  const proxyPort = Number(new URL(proxyOrigin).port);
+  await close(reserve);
+  await installed.apply(ctx, {herdr:{upstreamOrigin, parentOrigin:hostOrigin, proxyPort}, grok:{cookie:'sso=synthetic-offline; x-userid=offline-account', profileDirs:[], cacheCookie:false}});
+  assert.equal(route.path, '/__dsh_grok/api');
+  const status = await fetch(hostOrigin + route.path + '/status');
+  assert.equal(status.status, 200);
+  assert.equal((await status.json()).connection, 'idle');
+  const auth = await fetch(hostOrigin + route.path + '/auth');
+  assert.equal(auth.status, 200);
+  assert.equal((await auth.json()).userId, 'offline-account');
+  const health = await fetch(proxyOrigin + '/__dsh_herdr/health', {headers:{Origin:hostOrigin}});
+  assert.equal(health.status, 200);
+  assert.equal((await health.json()).upstream.status, 200);
+  console.log('public apply: Herdr proxy starts and Grok routes mount by default; fake upstream and synthetic account passed');
+} finally {
+  for (const cleanup of effects.reverse()) await cleanup();
+  await close(host);
+  await close(upstream);
+}
+assert.equal(route, null);
+for (const argv of [[], ['--unknown', '--profile', 'isolated']]) {
+  const result = spawnSync(process.execPath, [join(root, 'scripts/install.mjs'), ...argv, '--dry-run'], {cwd:root, encoding:'utf8'});
+  assert.equal(result.status, 2);
+  assert.doesNotMatch(result.stdout, /\$.*dsh/);
+}
+console.log('missing-profile and unknown-argument branches rejected; service resources released');
 console.log(`verification artifacts (ignored by Git): ${work}`);

@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
-import { GrokBotRelay } from './grok/relay.js';
-import { createApi, listBots } from './grok/web.js';
-import { invalidateCookieCache, resolveCookie, userIdFromCookie } from './grok/auth.js';
+import { GrokBotRelay } from './relay.js';
+import { createApi, listBots } from './web.js';
+import { invalidateCookieCache, resolveCookie, userIdFromCookie } from './auth.js';
 
 const PREFIX = '/__dsh_grok/api';
 const MAX_URL_BYTES = 8192;
@@ -484,6 +484,7 @@ export function registerGrokRoutes(ctx, config = {}) {
         if (disposed) throw new RequestError(503, 'Grok service unavailable');
         if (!relay) {
           relay = (config.relayFactory ?? (options => new GrokBotRelay(options)))({
+            cookie: config.cookie,
             cookieFile: config.cookieFile ?? join(homedir(), '.dsh', 'grokbot', 'cookie.txt'),
             profileDirs: config.profileDirs, cacheCookie: config.cacheCookie ?? true, uid: config.uid,
             // Upstream diagnostics can contain account ids, paths and relay error payloads.

@@ -1,4 +1,4 @@
 ---
 ---
 
-Initial packaging of the existing 0.1.0 packages. No version bump is needed for this repository import.
+首发 0.1.0：单个工作台插件，默认启用 DSH 会话、Herdr 与 Grok；包含凭据读取和缓存修复。

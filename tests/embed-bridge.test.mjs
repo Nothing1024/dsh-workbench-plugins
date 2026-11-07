@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-const SOURCE = readFileSync(new URL('../packages/herdr-live/embed-bridge.js', import.meta.url), 'utf8');
+const SOURCE = readFileSync(new URL('../src/herdr/embed-bridge.js', import.meta.url), 'utf8');
 const PARENT = 'http://127.0.0.1:50759';
 const CURRENT = { machine: 'local', workspace: 'w1', pane: 'p1', view: 'terminal' };
 const FRAME = '.pane-frame.is-current:not(.is-hidden)[data-layout-pane]';

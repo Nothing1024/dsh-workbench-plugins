@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { createHash } from 'node:crypto';
 import { EventEmitter, once } from 'node:events';
-import { createSidebarChannel } from '../packages/herdr-live/sidebar-channel.mjs';
+import { createSidebarChannel } from '../src/herdr/sidebar-channel.mjs';
 
 const PARENT = 'http://127.0.0.1:50759';
 const API = '/__dsh_herdr/';

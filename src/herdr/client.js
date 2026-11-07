@@ -1,10 +1,7 @@
-// Native DSH navigation and sidebar; Ovis retains its real application and terminal renderer.
-window.__ModuleLoader__.load({
-  id: 'dsh-plugin-herdr-live',
-  factory(require) {
+export function createHerdrClient(require, sources) {
     const React=require('react');
     const {createPortal}=require('react-dom');
-    const {SOURCE_TAB_SLOT, SourceTab}=require('dsh-plugin-workbench-sources');
+    const {SOURCE_TAB_SLOT, SourceTab} = sources;
     const h=React.createElement;
     const ID='herdr';
     const DEFAULT_FRAME_ORIGIN='http://127.0.0.1:50760';
@@ -500,5 +497,4 @@ window.__ModuleLoader__.load({
       ctx.effect(()=>{window.addEventListener('message',message);window.__HERDR_LIVE__=diagnostic;return()=>{disposed=true;clearTimeout(pendingTimer);window.removeEventListener('message',message);stopData();disposeSidebar?.();if(window.__HERDR_LIVE__===diagnostic)delete window.__HERDR_LIVE__;};});
     }
     return {inject:['slots','layout'],apply};
-  }
-});
+}

@@ -1,10 +1,7 @@
-// Browser adapter for the existing grok.com Bot API. State outlives main-panel mounts.
-window.__ModuleLoader__.load({
-  id: 'dsh-plugin-grok-workbench',
-  factory(require) {
+export function createGrokClient(require, sources) {
     const React = require('react');
     const {createPortal}=require('react-dom');
-    const {SOURCE_TAB_SLOT, SourceTab} = require('dsh-plugin-workbench-sources');
+    const {SOURCE_TAB_SLOT, SourceTab} = sources;
     const h = React.createElement;
     const ID = 'grok';
     const API = '/__dsh_grok/api';
@@ -912,5 +909,4 @@ window.__ModuleLoader__.load({
       ctx.effect(()=>()=>{store.dispose();disposeSidebar?.();});
     }
     return {inject:['slots','layout'],apply,createGrokStore,mergeEntries};
-  },
-});
+}

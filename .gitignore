@@ -16,3 +16,8 @@ runtime/
 **/credentials*.json
 *.pem
 *.key
+
+# ticket-workflow 生成物与搜索可见性
+spec-view.html
+!.tickets/
+dist/

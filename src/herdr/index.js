@@ -2,10 +2,10 @@ import {writeFile} from 'node:fs/promises';
 import {createOvisProxy} from './proxy.mjs';
 import {readHerdrPrefs, resolveHerdrConfig} from './prefs.mjs';
 
-/** 启动本机 Ovis 门面代理。接入地址优先读 ~/.dsh/herdr-live/prefs.json，其次才是环境变量默认值。 */
-export async function apply(ctx) {
-  const prefs = await readHerdrPrefs();
-  const config = resolveHerdrConfig(prefs, process.env);
+/** 启动本机 Ovis 代理；显式配置优先，否则读取用户偏好与启动环境变量。 */
+export async function apply(ctx, preferences) {
+  const prefs = preferences ?? await readHerdrPrefs();
+  const config = resolveHerdrConfig(prefs, preferences ? {} : process.env);
   const proxy = createOvisProxy({
     upstreamOrigin: config.upstreamOrigin,
     parentOrigin: config.parentOrigin,

@@ -23,6 +23,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 /** How long a successful cookie read is reused before hitting the browser again. */
 const COOKIE_TTL_MS = 5 * 60 * 1000;
@@ -30,6 +31,7 @@ const COOKIE_TTL_MS = 5 * 60 * 1000;
 const DISK_TTL_MS = 12 * 60 * 60 * 1000;
 
 let cache = { at: 0, header: "", source: "" };
+let cacheKey = "";
 
 /** The plugin's own cookie cache file (fallback only; the browser stays authoritative). */
 function diskCachePath() {
@@ -41,7 +43,13 @@ function writeDiskCache(header, source) {
   try {
     const file = diskCachePath();
     fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
-    fs.writeFileSync(file, JSON.stringify({ header, source, at: Date.now() }), { mode: 0o600 });
+    const temporary = `${file}.${randomUUID()}.tmp`;
+    try {
+      fs.writeFileSync(temporary, JSON.stringify({ header, source, at: Date.now() }), { mode: 0o600, flag: "wx" });
+      fs.renameSync(temporary, file);
+    } finally {
+      fs.rmSync(temporary, { force: true });
+    }
   } catch {
     // a cache we cannot write is not an error
   }
@@ -191,17 +199,21 @@ export async function resolveCookie(options = {}) {
   const explicit = options.cookie || process.env.GROK_COOKIE || process.env.GROK_SSO;
   if (explicit) return { header: explicit.trim().replace(/^cookie:\s*/i, ""), source: "config" };
 
-  if (!options.force && cache.header && Date.now() - cache.at < COOKIE_TTL_MS) return cache;
-
-  const file = options.cookieFile || path.join(os.homedir(), ".dsh", "grokbot", "cookie.txt");
+  const file = path.resolve(options.cookieFile || path.join(os.homedir(), ".dsh", "grokbot", "cookie.txt"));
+  const profileDirs = options.profileDirs || defaultProfileDirs();
+  const key = JSON.stringify([file, profileDirs, options.cacheCookie !== false]);
   const fromFile = cookiesFromFile(file);
   if (fromFile) {
+    cacheKey = key;
     cache = { at: Date.now(), header: fromFile, source: "file:" + file };
     return cache;
   }
 
-  const fromBrowser = await cookiesFromBrowser(options.profileDirs || defaultProfileDirs(), options.timeoutMs || 20000);
+  if (!options.force && cacheKey === key && cache.header && Date.now() - cache.at < COOKIE_TTL_MS) return cache;
+
+  const fromBrowser = await cookiesFromBrowser(profileDirs, options.timeoutMs || 20000);
   if (fromBrowser.header) {
+    cacheKey = key;
     cache = { at: Date.now(), header: fromBrowser.header, source: fromBrowser.source };
     if (options.cacheCookie !== false) writeDiskCache(cache.header, cache.source);
     return cache;
@@ -209,6 +221,7 @@ export async function resolveCookie(options = {}) {
 
   const fromDisk = options.cacheCookie === false ? null : readDiskCache();
   if (fromDisk) {
+    cacheKey = key;
     cache = fromDisk;
     return cache;
   }
@@ -223,6 +236,7 @@ export async function resolveCookie(options = {}) {
 /** Drop the in-memory and on-disk copies so the next call re-reads the browser. */
 export function invalidateCookieCache() {
   cache = { at: 0, header: "", source: "" };
+  cacheKey = "";
   try { fs.rmSync(diskCachePath(), { force: true }); } catch { /* nothing to remove */ }
 }
 

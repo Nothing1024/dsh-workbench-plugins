@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
-import { registerGrokRoutes } from '../packages/grok-workbench/grok-service.mjs';
+import { registerGrokRoutes } from '../src/grok/service.mjs';
 
 const PREFIX = '/__dsh_grok/api';
 const NONCE = '12345678-1234-4abc-8abc-123456789abc';

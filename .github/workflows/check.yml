@@ -30,6 +30,6 @@ jobs:
         run: npm run changeset -- status
       - name: Installer plans only
         run: |
-          node scripts/install.mjs both --source local --profile ci --dry-run
-          node scripts/install.mjs both --source npm --version 0.1.0 --profile ci --dry-run
+          node scripts/install.mjs --source local --profile ci --dry-run
+          node scripts/install.mjs --source npm --version 0.1.0 --profile ci --dry-run
       # No publish job, npm token, profile installation, or remote mutation.

@@ -5,8 +5,8 @@ import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { registerGrokRoutes } from '../packages/grok-workbench/grok-service.mjs';
-import { GrokBotRelay } from '../packages/grok-workbench/grok/relay.js';
+import { registerGrokRoutes } from '../src/grok/service.mjs';
+import { GrokBotRelay } from '../src/grok/relay.js';
 
 const PREFIX = '/__dsh_grok/api';
 const NONCE = '12345678-1234-4abc-8abc-123456789abc';
@@ -263,6 +263,17 @@ test('reuses one lazy relay for compatible layout, bots, transcript, status and 
   f.dispose();
   assert.equal(f.relay.closeCalls, 1);
   assert.equal(f.unmounts, 1);
+});
+
+test('auth inspection and the relay use the same explicit cookie without exposing its value', async t => {
+  const cookie = 'sso=synthetic-explicit-account; x-userid=explicit-account';
+  const f = await fixture(t, {cookie, cookieFile:'/fake/other-account.txt', profileDirs:[], cacheCookie:false});
+  const auth = await f.request('auth');
+  assert.equal(auth.status, 200);
+  assert.equal(auth.body.userId, 'explicit-account');
+  assert.doesNotMatch(auth.text, /synthetic-explicit-account/);
+  assert.equal((await f.request('bots')).status, 200);
+  assert.equal(f.factoryCalls[0].cookie, cookie);
 });
 
 test('offbox cursors preserve whole pages even when the tail limit is smaller', async t => {

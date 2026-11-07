@@ -6,8 +6,8 @@ import vm from 'node:vm';
 
 // Execute the actual client offline. No browser, sockets, real fetch, or services
 // are exposed to its VM; every response and frame message is supplied below.
-const clientUrl = new URL('../packages/herdr-live/client.js', import.meta.url);
-const clientSource = readFileSync(clientUrl, 'utf8');
+const clientUrl = new URL('../src/herdr/client.js', import.meta.url);
+const clientSource = readFileSync(clientUrl, 'utf8').replace('export function createHerdrClient', 'function createHerdrClient') + "\nwindow.__ModuleLoader__.load({id:'herdr', factory:require=>createHerdrClient(require, {SOURCE_TAB_SLOT:'offline.source-tabs', SourceTab() {}})});";
 const plain = value => JSON.parse(JSON.stringify(value));
 const settle = () => nextTurn();
 
@@ -121,7 +121,6 @@ function harness(t) {
         plugin = module.factory(name => {
           if (name === 'react') return React;
           if (name === 'react-dom') return { createPortal: child => child };
-           if (name === 'dsh-plugin-workbench-sources') return { SOURCE_TAB_SLOT: 'offline.source-tabs', SourceTab() {} };
           throw new Error(`Unexpected module in offline client fixture: ${name}`);
         });
       },

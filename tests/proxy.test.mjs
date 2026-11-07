@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import {createHash} from 'node:crypto';
-import {createOvisProxy} from '../packages/herdr-live/proxy.mjs';
+import {createOvisProxy} from '../src/herdr/proxy.mjs';
 
 async function fixture(t) {
   const seen=[];

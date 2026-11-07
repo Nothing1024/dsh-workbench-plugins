@@ -1,0 +1,4 @@
+# Installed as one DSH profile layer.
+- insert:
+    - id: workbench-suite
+      name: dsh-plugin-workbench-suite

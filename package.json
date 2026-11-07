@@ -1,28 +1,77 @@
 {
-  "name": "dsh-workbench-plugins",
+  "name": "dsh-plugin-workbench-suite",
   "version": "0.1.0",
-  "private": true,
+  "description": "DSH 工作台插件：默认启用 DSH 会话、Herdr / Ovis 和 Grok bot，内部按来源栏与业务模块组织。",
   "type": "module",
-  "description": "DSH 工作台来源插件的独立 npm monorepo。",
-  "workspaces": [
-    "packages/*"
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "src/",
+    "dist/client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "workbench",
+    "herdr",
+    "grok"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REPLACE_ME/dsh-workbench-plugins.git"
+  },
+  "homepage": "https://github.com/REPLACE_ME/dsh-workbench-plugins#readme",
+  "license": "SEE LICENSE IN LICENSE",
   "engines": {
-    "node": "^22.11.0 || ^24.0.0 || >=26.0.0",
-    "npm": ">=10.9.0"
+    "node": ">=22.4.0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./dist/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ],
+      "external": [
+        "react",
+        "react-dom"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   },
   "scripts": {
-    "lint": "node scripts/check.mjs",
-    "check": "npm run lint",
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
+    "pretest": "npm run build",
+    "check": "npm run build && node scripts/check.mjs",
+    "lint": "npm run check",
     "test": "node --test tests/*.test.mjs",
-    "verify:install": "node scripts/verify-install.mjs",
-    "pack:dry-run": "node scripts/pack-dry-run.mjs",
+    "verify:install": "npm run build && node scripts/verify-install.mjs",
+    "pack:dry-run": "npm run build && node scripts/pack-dry-run.mjs",
     "changeset": "changeset",
     "version:packages": "changeset version",
     "release:check": "npm run check && npm test && npm run pack:dry-run",
     "release:publish": "changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^3.0.3"
+    "@changesets/cli": "^3.0.3",
+    "esbuild": "0.28.2"
   }
 }

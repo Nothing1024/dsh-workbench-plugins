@@ -1,7 +1,4 @@
-// 工作台来源栏薄壳：只挂来源条和「DSH 会话」标签，供 Herdr / Grok 等业务插件注入自己的 tab。
-window.__ModuleLoader__.load({
-  id: 'dsh-plugin-workbench-sources',
-  factory(require) {
+export function createSourcesClient(require) {
     const React = require('react');
     const {createPortal} = require('react-dom');
     const h = React.createElement;
@@ -198,5 +195,4 @@ window.__ModuleLoader__.load({
     }
 
     return {inject: ['slots', 'layout'], apply, SOURCE_BAR_FACTORY, SOURCE_TAB_SLOT, SourceTab};
-  },
-});
+}
