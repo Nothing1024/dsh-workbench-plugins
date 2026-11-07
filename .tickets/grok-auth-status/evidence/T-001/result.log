@@ -1,0 +1,3 @@
+Manual Auth API regression passed: private file save, restart read, removal, no response secret, invalid body rejection and auth/origin checks.
+SSO and Cookie formats accepted; disk-cache-disabled invalidation leaves unrelated storage untouched.
+Targeted tests: 29 passed.

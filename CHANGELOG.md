@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Grok 设置支持手动保存和移除 Auth，保存后不返回原文。
+- 机器人状态统一为三个字，待查看只显示一个标记，运行、等待、待查看、空闲使用蓝、橙、紫、灰色。
+
 - 单个 `dsh-plugin-workbench-suite` 包提供 DSH 会话、Herdr 和 Grok 三个默认开启的来源。
 - 内部源码按 `src/sources`、`src/herdr`、`src/grok` 组织，浏览器构建输出一个模块。
 - 提供单包本地与 npm 安装、独立环境安装验证及打包白名单检查。

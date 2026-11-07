@@ -37,8 +37,9 @@ function fixture(t) {
     process:{env:{}, platform:process.platform, pid:process.pid},
     WebSocket:BrowserSocket, setTimeout, clearTimeout,
   });
-  vm.runInContext(code + '\nthis.auth = {resolveCookie};', context);
+  vm.runInContext(code + '\nthis.auth = {resolveCookie, invalidateCookieCache};', context);
   f.resolve = options => context.auth.resolveCookie(options);
+  f.invalidate = options => context.auth.invalidateCookieCache(options);
   f.writeCookie = (filename, account) => {
     const file = path.join(home, filename);
     fs.writeFileSync(file, 'sso=synthetic-' + account + '; x-userid=' + account, {mode:0o600});
@@ -101,5 +102,15 @@ test('refreshing a symlink cache does not write credentials into its target', as
 test('disabling disk caching leaves the filesystem untouched', async t => {
   const f = fixture(t);
   assert.match((await f.fromBrowser({cacheCookie:false})).header, /synthetic-account-a/);
+  assert.equal(fs.existsSync(f.cacheFile), false);
+});
+
+test('cache invalidation respects a disabled disk cache', async t => {
+  const f = fixture(t);
+  await f.fromBrowser();
+  const original = fs.readFileSync(f.cacheFile, 'utf8');
+  f.invalidate({cacheCookie:false});
+  assert.equal(fs.readFileSync(f.cacheFile, 'utf8'), original);
+  f.invalidate();
   assert.equal(fs.existsSync(f.cacheFile), false);
 });

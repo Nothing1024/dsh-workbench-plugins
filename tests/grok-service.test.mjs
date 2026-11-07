@@ -5,6 +5,8 @@ import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import {mkdtemp, readFile, stat, access, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import { registerGrokRoutes } from '../src/grok/service.mjs';
 import { GrokBotRelay } from '../src/grok/relay.js';
 
@@ -274,6 +276,56 @@ test('auth inspection and the relay use the same explicit cookie without exposin
   assert.doesNotMatch(auth.text, /synthetic-explicit-account/);
   assert.equal((await f.request('bots')).status, 200);
   assert.equal(f.factoryCalls[0].cookie, cookie);
+});
+
+test('manual auth saves privately, survives service restart and can be removed without returning the secret', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'grok-manual-auth-'));
+  t.after(() => rm(directory, {recursive:true, force:true}));
+  const cookieFile = join(directory, 'cookie.txt');
+  const config = {cookieFile, profileDirs:[], cacheCookie:false};
+  const f = await fixture(t, config);
+  await f.request('bots');
+  const secret = 'synthetic-manual-session-only';
+  const result = await f.post('auth-save', {cookie:'Cookie: sso=' + secret + '; x-userid=manual-account'});
+  assert.equal(result.status, 200);
+  assert.equal(result.body.manualConfigured, true);
+  assert.equal(result.body.userId, 'manual-account');
+  assert.doesNotMatch(result.text, /synthetic-manual-session-only/);
+  assert.equal((await stat(cookieFile)).mode & 0o777, 0o600);
+  assert.match(await readFile(cookieFile, 'utf8'), /^sso=synthetic-manual-session-only;/);
+  assert.equal(f.relay.closeCalls, 1);
+  const restarted = await fixture(t, config);
+  const auth = await restarted.request('auth');
+  assert.equal(auth.body.manualConfigured, true);
+  assert.equal(auth.body.userId, 'manual-account');
+  assert.doesNotMatch(auth.text, /synthetic-manual-session-only/);
+  const removed = await restarted.post('auth-remove', {});
+  assert.equal(removed.status, 200);
+  assert.equal(removed.body.manualConfigured, false);
+  assert.doesNotMatch(removed.text, /synthetic-manual-session-only/);
+  await assert.rejects(access(cookieFile), {code:'ENOENT'});
+  assert.equal((await restarted.request('auth')).body.signedIn, false);
+});
+
+test('manual auth accepts an SSO value and rejects unauthorized, foreign-origin and invalid writes', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'grok-manual-auth-'));
+  t.after(() => rm(directory, {recursive:true, force:true}));
+  const cookieFile = join(directory, 'cookie.txt');
+  const f = await fixture(t, {cookieFile, profileDirs:[], cacheCookie:false});
+  f.auth = false;
+  assert.equal((await f.post('auth-save', {cookie:'synthetic-rejected'})).status, 401);
+  await assert.rejects(access(cookieFile), {code:'ENOENT'});
+  f.auth = true;
+  assert.equal((await f.post('auth-save', {cookie:'synthetic-rejected'}, {origin:'https://foreign.invalid'})).status, 403);
+  for (const body of [{cookie:''}, {cookie:'invalid auth with spaces'}, {cookie:'sso=synthetic\nInjected: value'}, {cookie:'s'.repeat(32769)}, {cookie:'synthetic-rejected', path:'/not-allowed'}]) {
+    assert.equal((await f.post('auth-save', body)).status, 400);
+    await assert.rejects(access(cookieFile), {code:'ENOENT'});
+  }
+  assert.equal((await f.post('auth-save', {cookie:'synthetic-sso-value'})).status, 200);
+  assert.equal(await readFile(cookieFile, 'utf8'), 'sso=synthetic-sso-value\n');
+  f.auth = false;
+  assert.equal((await f.post('auth-remove', {})).status, 401);
+  assert.equal(await readFile(cookieFile, 'utf8'), 'sso=synthetic-sso-value\n');
 });
 
 test('offbox cursors preserve whole pages even when the tail limit is smaller', async t => {

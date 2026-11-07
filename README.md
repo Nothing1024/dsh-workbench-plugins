@@ -36,6 +36,7 @@ src/
     client.js             机器人列表、对话和上传界面
     service.mjs           已认证的 DSH 路由
     auth.js               用户凭据读取与缓存
+    auth-config.mjs       手动 Auth 的本机保存与移除
     relay.js              Grok 连接与命令
     web.js                机器人、分组与历史数据处理
 dist/client.js            构建出的单个浏览器模块
@@ -58,9 +59,24 @@ docs/                     安装和发布说明
 
 - 工作台来源：DSH 会话标签显示与顺序；偏好保存在浏览器 localStorage。
 - Herdr：Ovis URL、代理端口、DSH 父页面地址、测试连接和保存。默认上游为 `http://127.0.0.1:7317`，代理端口为 `50760`；父页面地址需设为实际 DSH 地址。修改代理端口后需要重启。
-- Grok bot：检测、重新加载和清除用户的本地会话缓存，打开 grok.com 登录页；界面不展示 cookie 内容。
+- Grok bot：手动填写完整 Cookie 或单独的 SSO 值，保存并应用、移除手动 Auth；也可检测、重新加载或清除本地会话缓存。保存后不返回或显示 Auth 原文。
 
 Herdr 偏好保存在 `~/.dsh/herdr-live/prefs.json`；`DSH_HERDR_UPSTREAM`、`DSH_HERDR_PARENT_ORIGIN`、`DSH_HERDR_PROXY_PORT` 可在启动时覆盖默认偏好。Grok 使用用户自己的显式配置、环境变量、cookie 文件或可调试浏览器会话。仓库和 npm 包不包含这些用户数据。
+
+## Grok bot 的 Auth 与状态
+
+打开「Grok bot → 账号与会话设置」，在「手动 Auth」中填写完整 Cookie（可带 `Cookie:` 前缀）或单独的 SSO 值，点击「保存并应用」。保存后输入框清空，只显示已配置状态。凭据写入 DSH 所在机器的 `~/.dsh/grokbot/cookie.txt`，文件仅当前用户可读写，不进入浏览器 localStorage。
+
+「移除手动 Auth」删除上述手动文件；「清除缓存」只清理会话缓存，不删除手动配置。启动配置和环境变量仍优先于手动文件，页面会提示当前来源。保存成功表示配置已写入，登录是否有效以实际机器人连接结果为准。
+
+| 机器人状态 | 显示 | 颜色 |
+|---|---|---|
+| 运行 | 运行中 | 蓝色 |
+| 等待输入 | 待输入 | 橙色 |
+| 有未读回复 | 待查看 | 紫色 |
+| 空闲 | 空闲中 | 灰色 |
+
+侧栏和对话标题只显示一个状态标记；运行中的机器人即使有未读标记，也继续显示「运行中」。
 
 ## 本地开发
 

@@ -16,10 +16,7 @@ export function createGrokClient(require, sources) {
       if (!ALLOWED_EXT.has(fileExt(file.name))) return file.name + ' 类型不受支持';
       return null;
     };
-    const label = value => ({running:'运行中',waiting:'等待输入',unread:'未读回复',idle:'空闲'}[value] || value || '空闲');
-    // The upstream reports completion independently: a bot can still be running while
-    // an earlier turn already produced a result the user has not opened.
-    const pendingLabel = bot => !!bot && !bot.isRunning && !!bot.hasUnread ? '待查看' : '';
+    const label = value => ({running:'运行中',waiting:'待输入',unread:'待查看',idle:'空闲中'}[value] || (value ? '未知态' : '空闲中'));
     const time = value => value ? new Date(Number(value)).toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
     function Glyph({name='bot',size=17}) {
       const paths = {bot:['M12 3v4','M4 7h16v13H4Z','M8 12h.01','M16 12h.01','M9 16h6'],search:['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z','m17 17 4 4'],refresh:['M20 7v5h-5','M4 17v-5h5','M6 7a7 7 0 0 1 12-2l2 2','M4 17l2 2a7 7 0 0 0 12-2'],plus:['M12 5v14','M5 12h14'],external:['M15 3h6v6','m10 14 11-11','M21 14v7H3V3h7'],chevron:['m9 5 7 7-7 7'],more:['M5 12h.01','M12 12h.01','M19 12h.01'],close:['m6 6 12 12','M18 6 6 18'],clip:['m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7'],file:['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z','M14 2v6h6','M16 13H8','M16 17H8','M10 9H8'],image:['M21 15V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4','m21 15-5-5L5 21','M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3'],folder:['M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'],sliders:['M4 21v-7','M4 10V3','M12 21v-9','M12 8V3','M20 21v-5','M20 12V3','M1 14h6','M9 8h6','M17 16h6']};
@@ -94,15 +91,18 @@ export function createGrokClient(require, sources) {
       .dsh-plugin-settings dl{display:grid;grid-template-columns:96px 1fr;gap:6px 12px;margin:0;font-size:13px}
       .dsh-plugin-settings dt{color:var(--dsw-alias-label-tertiary)}
       .dsh-plugin-settings dd{margin:0;overflow-wrap:anywhere}
+      .dsh-plugin-settings .auth-field{display:flex;flex-direction:column;gap:8px;font-size:13px}
+      .dsh-plugin-settings .auth-field input{box-sizing:border-box;width:100%;height:36px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);color:inherit;font:inherit}
       .dsh-plugin-settings-shade{position:fixed;inset:0;z-index:80;background:#0006;display:grid;place-items:center;padding:24px}
       .dsh-plugin-settings-dialog{width:min(560px,100%);max-height:min(88vh,720px);overflow:auto;border-radius:12px;background:var(--dsw-alias-bg-base);box-shadow:0 16px 48px #0004;padding:18px 18px 16px;position:relative}
       .dsh-plugin-settings-dialog .dsh-plugin-settings-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}
     `;
     function connectionLabel(value){
-      return {idle:'空闲（尚未建立连接）',connecting:'正在连接',open:'已连接',closed:'已断开'}[value]||value||'未知';
+      return {idle:'未连接',connecting:'连接中',open:'已连接',closed:'已断开'}[value]||'未知态';
     }
     function GrokSettingsPanel(){
       const [auth,setAuth]=React.useState(null);
+      const [manualAuth,setManualAuth]=React.useState('');
       const [conn,setConn]=React.useState(null);
       const [busy,setBusy]=React.useState('');
       const [notice,setNotice]=React.useState('打开此页时会检测 grok.com 会话，不会在界面上显示 cookie 内容。');
@@ -129,7 +129,28 @@ export function createGrokClient(require, sources) {
       });},[]);
       return h('div',{className:'dsh-plugin-settings','data-plugin-settings':'grok-workbench'},
         h('style',null,grokSettingsStyles),
-        h('header',null,h('h2',null,'Grok bot'),h('p',{className:'lead'},'检测并加载 grok.com 浏览器会话。插件不会把 cookie 写进设置页；登录请在 grok.com 完成，然后回来重新检测。')),
+        h('header',null,h('h2',null,'Grok bot'),h('p',{className:'lead'},'手动配置 Grok bot 的 Auth，或继续使用自动会话检测。')),
+        h('fieldset',null,
+          h('legend',null,'手动 Auth'),
+          h('label',{className:'auth-field'},'Grok bot Auth',
+            h('input',{type:'password',value:manualAuth,autoComplete:'off',spellCheck:false,'aria-label':'Grok bot Auth',placeholder:auth?.manualConfigured?'已保存；填写新 Auth 可替换':'Cookie: sso=… 或单独的 SSO 值',onChange:event=>setManualAuth(event.target.value)}),
+          ),
+          h('p',{className:'hint'},'Auth 只保存在当前 DSH 所在机器，保存后不再显示原文。启动配置和环境变量仍优先于此处保存的内容。'),
+          h('div',{className:'row'},
+            h('button',{type:'button','data-primary':true,disabled:!!busy||!manualAuth.trim(),onClick:()=>void run('save',async()=>{
+              const nextAuth=await request('/auth-save',{cookie:manualAuth});
+              setManualAuth('');setConn({connection:'idle'});
+              window.dispatchEvent(new CustomEvent('dsh-grok-auth-changed'));
+              return {ok:true,auth:nextAuth,text:nextAuth.message};
+            })},busy==='save'?'保存中…':'保存并应用'),
+            h('button',{type:'button',disabled:!!busy||!auth?.manualConfigured,onClick:()=>void run('remove',async()=>{
+              const nextAuth=await request('/auth-remove',{});
+              setManualAuth('');setConn({connection:'idle'});
+              window.dispatchEvent(new CustomEvent('dsh-grok-auth-changed'));
+              return {ok:true,auth:nextAuth,text:nextAuth.message};
+            })},busy==='remove'?'移除中…':'移除手动 Auth'),
+          ),
+        ),
         h('fieldset',null,
           h('legend',null,'会话状态'),
           h('dl',null,
@@ -782,11 +803,11 @@ export function createGrokClient(require, sources) {
 .grok-bot[aria-current=true]:before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--g-accent)}
 
 .grok-bot-status{display:inline-flex;align-items:center;justify-content:flex-end;flex:0 0 auto;min-width:0;width:auto;margin-left:8px}
-.grok-status-badge,.grok-status-pill{--g-status-color:var(--g-muted);display:inline-flex;align-items:center;justify-content:center;flex:none;max-width:100%;gap:0;border-radius:4px;padding:1px 6px;font-size:11px;line-height:18px;font-weight:500;white-space:nowrap;box-shadow:none}
-.grok-status-badge[data-state=running],.grok-status-pill[data-state=running]{--g-status-color:var(--dsw-alias-state-success-primary,#5b9f83)}
-.grok-status-badge[data-state=waiting],.grok-status-pill[data-state=waiting]{--g-status-color:var(--dsw-alias-state-warning-primary,#bc9455)}
-.grok-status-badge[data-state=unread],.grok-status-pill[data-state=unread]{--g-status-color:var(--g-accent)}
-.grok-status-badge[data-state=pending],.grok-status-pill[data-state=pending]{--g-status-color:var(--g-accent);background:color-mix(in srgb,var(--g-accent) 14%,transparent);border-color:color-mix(in srgb,var(--g-accent) 55%,transparent);font-weight:600}
+.grok-status-badge,.grok-status-pill{--g-status-color:var(--g-muted);display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:3em;max-width:100%;gap:0;border-radius:4px;padding:1px 6px;font-size:11px;line-height:18px;font-weight:500;white-space:nowrap;box-shadow:none}
+.grok-status-badge[data-state=running],.grok-status-pill[data-state=running]{--g-status-color:color-mix(in srgb,#3b82f6 80%,var(--g-ink))}
+.grok-status-badge[data-state=waiting],.grok-status-pill[data-state=waiting]{--g-status-color:color-mix(in srgb,#d97706 80%,var(--g-ink))}
+.grok-status-badge[data-state=unread],.grok-status-pill[data-state=unread]{--g-status-color:color-mix(in srgb,#8b5cf6 80%,var(--g-ink))}
+.grok-status-badge[data-state=idle],.grok-status-pill[data-state=idle]{--g-status-color:color-mix(in srgb,#64748b 80%,var(--g-ink))}
 .grok-status-badge[data-state],.grok-status-pill[data-state]{color:var(--g-status-color);border:1px solid color-mix(in srgb,var(--g-status-color) 34%,transparent);background:color-mix(in srgb,var(--g-status-color) 8%,transparent)}
 @container grok-panel (max-width:640px){.grok-log{padding:18px 16px}.grok-composer{padding:10px 16px 12px}.grok-entry[data-role=user] .grok-entry-body{max-width:92%}.grok-chat-heading{padding:12px 16px}.grok-chat-title{flex-basis:0;min-width:0}.grok-chat-heading-copy{min-width:0}.grok-chat-actions{flex-shrink:0}.grok-chat-title h1{font-size:14px}}
 `;
@@ -830,7 +851,7 @@ export function createGrokClient(require, sources) {
           if(!items.length&&(query||!editable))return null;
           return h('section',{key:id,className:'grok-group','data-grok-group':id},
             h('div',{className:'grok-group-heading'},h('button',{type:'button',className:'grok-group-toggle','aria-expanded':!collapsed,onClick:()=>store.toggleGroup(id,initial)},h('span',{className:'grok-slot','aria-hidden':true},h('span',{className:'grok-folder'},h(Glyph,{name:'folder',size:16})),h('span',{'data-collapsed':collapsed,className:'grok-chevron'},h(Glyph,{name:'chevron',size:12}))),h('span',{className:'grok-group-name'},name)),editable&&h('button',{type:'button',className:'grok-icon','aria-label':'管理分组 '+name,onClick:()=>setDialog({kind:'group',id,name})},h(Glyph,{name:'more',size:15}))),
-            !collapsed&&items.map(bot=>h('button',{key:bot.id,type:'button',className:'grok-bot','data-grok-bot':bot.id,'aria-current':bot.id===s.selected?'true':undefined,title:bot.lastMessagePreview||bot.description||label(bot.state),onClick:()=>store.select(bot.id)},h('span',{className:'grok-slot','aria-hidden':true}),h('span',{className:'grok-bot-copy'},h('span',{className:'grok-bot-name'},bot.name),h('span',{className:'grok-preview'},bot.lastMessagePreview||bot.description||label(bot.state))),h('span',{className:'grok-bot-status'},h('span',{className:'grok-status-badge','data-state':bot.state},label(bot.state)),pendingLabel(bot)&&h('span',{className:'grok-status-badge','data-state':'pending','data-pending':true},pendingLabel(bot))))));
+            !collapsed&&items.map(bot=>h('button',{key:bot.id,type:'button',className:'grok-bot','data-grok-bot':bot.id,'aria-current':bot.id===s.selected?'true':undefined,title:bot.lastMessagePreview||bot.description||label(bot.state),onClick:()=>store.select(bot.id)},h('span',{className:'grok-slot','aria-hidden':true}),h('span',{className:'grok-bot-copy'},h('span',{className:'grok-bot-name'},bot.name),h('span',{className:'grok-preview'},bot.lastMessagePreview||bot.description||label(bot.state))),h('span',{className:'grok-bot-status'},h('span',{className:'grok-status-badge','data-state':bot.state},label(bot.state))))));
         }
         const emptyNode=layout
           ? (!visible(layout.bots).length&&h('div',{className:'grok-empty'},h('div',null,query?'没有匹配的机器人':'暂无机器人'),!query&&h('div',{className:'grok-empty-actions'},h('a',{href:'https://grok.com/',target:'_blank',rel:'noopener noreferrer'},h('button',{type:'button','data-primary':true},'新建机器人')),h('button',{type:'button',disabled:s.loading,onClick:()=>void store.refresh()},'刷新'))))
@@ -884,7 +905,7 @@ export function createGrokClient(require, sources) {
         React.useLayoutEffect(()=>{scrollAnchor.current=null;const element=logRef.current;if(element)element.scrollTop=log.scroll?.bottom?element.scrollHeight:log.scroll?.top??element.scrollHeight;},[id]);
         React.useLayoutEffect(()=>{const element=logRef.current;if(!element)return;const anchor=scrollAnchor.current;if(anchor?.id===id){if((log.olderVersion||0)>anchor.version){element.scrollTop=anchor.top+element.scrollHeight-anchor.height;scrollAnchor.current=null;}else if(!log.loadingOlder)scrollAnchor.current=null;}else if(!log.scroll||log.scroll.bottom)element.scrollTop=element.scrollHeight;},[log.entries,log.loadingOlder,outbox.length]);
         return h('section',{ref:panelRef,className:'grok-panel','data-grok-panel':true,'data-config-mode':compactDetails?'drawer':'side','data-split':showDetails?'true':undefined,'aria-label':'Grok bot 对话'},h('style',null,css+layoutStyles),
-          h('header',{className:'grok-chat-heading'},h('div',{className:'grok-chat-title'},bot?h('div',{className:'grok-chat-heading-copy'},h('h1',null,bot.name),h('span',{className:'grok-status-pill','data-state':bot.state},label(bot.state)),pendingLabel(bot)&&h('span',{className:'grok-status-pill','data-state':'pending'},pendingLabel(bot)),bot.description&&h('p',null,bot.description)):h('h1',null,'Grok bot')),h('div',{className:'grok-chat-actions'},bot&&bot.isRunning&&h('button',{type:'button','data-interrupt':true,disabled:!!pending,onClick:()=>void store.mutate('/interrupt',{id})},pending==='/interrupt'?'中断中…':'中断'),h('button',{type:'button',ref:configButtonRef,className:'grok-icon','aria-controls':'grok-details','aria-expanded':showDetails,'aria-pressed':showDetails,title:showDetails?'隐藏配置栏':'显示配置栏','aria-label':showDetails?'隐藏配置栏':'显示配置栏',onClick:()=>{if(compactDetails)setDrawerOpen(!drawerOpen);else savePrefs({showConfig:!showDetails});}},h(Glyph,{name:'sliders',size:15})),bot&&h(React.Fragment,null,h('div',{className:'grok-menu-wrap'},h('button',{type:'button',className:'grok-icon',title:'更多','aria-label':'更多操作','aria-haspopup':'menu','aria-expanded':headMenu.open,ref:headMenu.trigger,disabled:!!pending,onClick:headMenu.toggle},h(Glyph,{name:'more',size:16})),headMenu.open&&h('div',{ref:headMenu.menu,className:'grok-menu',role:'menu',onClick:event=>event.stopPropagation()},h('button',{type:'button',role:'menuitem','aria-pressed':(s.layout.pinned||[]).includes(id),onClick:()=>{headMenu.close(true);void store.mutate('/pin',{id,pinned:!(s.layout.pinned||[]).includes(id)});}},(s.layout.pinned||[]).includes(id)?'取消置顶':'置顶'),h('button',{type:'button',role:'menuitem',onClick:()=>{headMenu.close(true);setDialog({kind:'rename',id,name:bot.name});}},'重命名'),h('button',{type:'button',role:'menuitem',onClick:()=>{headMenu.close(true);setDialog({kind:'move',id});}},'移入分组'),h('button',{type:'button',role:'menuitem','data-danger':true,disabled:bot.isRunning,onClick:()=>{headMenu.close(true);setDialog({kind:'delete',id,name:bot.name});}},'删除')))))),
+          h('header',{className:'grok-chat-heading'},h('div',{className:'grok-chat-title'},bot?h('div',{className:'grok-chat-heading-copy'},h('h1',null,bot.name),h('span',{className:'grok-status-pill','data-state':bot.state},label(bot.state)),bot.description&&h('p',null,bot.description)):h('h1',null,'Grok bot')),h('div',{className:'grok-chat-actions'},bot&&bot.isRunning&&h('button',{type:'button','data-interrupt':true,disabled:!!pending,onClick:()=>void store.mutate('/interrupt',{id})},pending==='/interrupt'?'中断中…':'中断'),h('button',{type:'button',ref:configButtonRef,className:'grok-icon','aria-controls':'grok-details','aria-expanded':showDetails,'aria-pressed':showDetails,title:showDetails?'隐藏配置栏':'显示配置栏','aria-label':showDetails?'隐藏配置栏':'显示配置栏',onClick:()=>{if(compactDetails)setDrawerOpen(!drawerOpen);else savePrefs({showConfig:!showDetails});}},h(Glyph,{name:'sliders',size:15})),bot&&h(React.Fragment,null,h('div',{className:'grok-menu-wrap'},h('button',{type:'button',className:'grok-icon',title:'更多','aria-label':'更多操作','aria-haspopup':'menu','aria-expanded':headMenu.open,ref:headMenu.trigger,disabled:!!pending,onClick:headMenu.toggle},h(Glyph,{name:'more',size:16})),headMenu.open&&h('div',{ref:headMenu.menu,className:'grok-menu',role:'menu',onClick:event=>event.stopPropagation()},h('button',{type:'button',role:'menuitem','aria-pressed':(s.layout.pinned||[]).includes(id),onClick:()=>{headMenu.close(true);void store.mutate('/pin',{id,pinned:!(s.layout.pinned||[]).includes(id)});}},(s.layout.pinned||[]).includes(id)?'取消置顶':'置顶'),h('button',{type:'button',role:'menuitem',onClick:()=>{headMenu.close(true);setDialog({kind:'rename',id,name:bot.name});}},'重命名'),h('button',{type:'button',role:'menuitem',onClick:()=>{headMenu.close(true);setDialog({kind:'move',id});}},'移入分组'),h('button',{type:'button',role:'menuitem','data-danger':true,disabled:bot.isRunning,onClick:()=>{headMenu.close(true);setDialog({kind:'delete',id,name:bot.name});}},'删除')))))),
           h('div',{className:'grok-shell'},h('div',{className:'grok-main'},!bot?h('div',{className:'grok-welcome'},h('h2',null,'Grok bot'),h('p',null,s.error||s.loading?'正在读取机器人列表，可在左侧刷新重试。':'从左侧选择一个机器人开始对话。'),h('div',{className:'grok-empty-actions'},h('button',{type:'button',disabled:s.loading,onClick:()=>void store.refresh()},s.loading?'刷新中…':'刷新列表'),h('a',{href:'https://grok.com/',target:'_blank',rel:'noopener noreferrer'},h('button',{type:'button','data-primary':true},'打开 Grok')))):h(React.Fragment,null,
             h('div',{ref:logRef,className:'grok-log','data-grok-log':true,role:'log','aria-label':bot.name+' 的对话记录',onScroll:event=>{const element=event.currentTarget;store.setScroll(id,{top:element.scrollTop,bottom:element.scrollHeight-element.scrollTop-element.clientHeight<48});}},
               log.cursor&&h('button',{type:'button',className:'grok-older',disabled:log.loadingOlder,onClick:()=>{const element=logRef.current;scrollAnchor.current={id,top:element.scrollTop,height:element.scrollHeight,version:log.olderVersion||0};void store.loadOlder();}},log.loadingOlder?'读取中…':'加载更早记录'),
@@ -906,6 +927,7 @@ export function createGrokClient(require, sources) {
       try{ctx.slots.inject('settings.plugins.tab',()=>ctx.slots.register({name:'settings.plugins.tab',id:'grok-workbench',order:18,label:'Grok bot'},GrokSettingsPanel));}catch(error){console.warn('[grok-workbench] 宿主设置页不可用',error);}
       ctx.slots.inject('sidebar.workspaces',()=>{sidebarAvailable=true;syncLayout();return()=>{sidebarAvailable=false;disposeSidebar?.();disposeSidebar=null;};});
       ctx.effect(()=>{const off=ctx.layout.panelInfo.subscribe(syncLayout);syncLayout();return()=>{off();store.stop();disposeSidebar?.();disposeSidebar=null;};});
+      ctx.effect(()=>{const refreshAuth=()=>{store.stop();syncLayout();};window.addEventListener('dsh-grok-auth-changed',refreshAuth);return()=>window.removeEventListener('dsh-grok-auth-changed',refreshAuth);});
       ctx.effect(()=>()=>{store.dispose();disposeSidebar?.();});
     }
     return {inject:['slots','layout'],apply,createGrokStore,mergeEntries};

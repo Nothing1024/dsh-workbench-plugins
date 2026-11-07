@@ -234,10 +234,12 @@ export async function resolveCookie(options = {}) {
 }
 
 /** Drop the in-memory and on-disk copies so the next call re-reads the browser. */
-export function invalidateCookieCache() {
+export function invalidateCookieCache({ cacheCookie = true } = {}) {
   cache = { at: 0, header: "", source: "" };
   cacheKey = "";
-  try { fs.rmSync(diskCachePath(), { force: true }); } catch { /* nothing to remove */ }
+  if (cacheCookie) {
+    try { fs.rmSync(diskCachePath(), { force: true }); } catch { /* nothing to remove */ }
+  }
 }
 
 /** The signed-in user id, from the x-userid cookie when present. */

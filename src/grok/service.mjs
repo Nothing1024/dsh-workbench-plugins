@@ -5,6 +5,7 @@ import { Readable } from 'node:stream';
 import { GrokBotRelay } from './relay.js';
 import { createApi, listBots } from './web.js';
 import { invalidateCookieCache, resolveCookie, userIdFromCookie } from './auth.js';
+import {hasManualAuth, normalizeManualAuth, saveManualAuth, removeManualAuth} from './auth-config.mjs';
 
 const PREFIX = '/__dsh_grok/api';
 const MAX_URL_BYTES = 8192;
@@ -37,7 +38,7 @@ const ALLOWED_MIME = new Set([
 ]);
 const METHODS = new Map([
   ...['bots', 'layout', 'status', 'transcript', 'auth'].map(path => [path, 'GET']),
-  ...['send', 'interrupt', 'rename', 'delete', 'group', 'group-rename', 'group-delete', 'pin', 'upload', 'auth-refresh', 'auth-clear'].map(path => [path, 'POST']),
+  ...['send', 'interrupt', 'rename', 'delete', 'group', 'group-rename', 'group-delete', 'pin', 'upload', 'auth-refresh', 'auth-clear', 'auth-save', 'auth-remove'].map(path => [path, 'POST']),
 ]);
 
 class RequestError extends Error {
@@ -203,6 +204,11 @@ function sendFingerprint(body) {
 
 function validateBody(route, body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new RequestError(400, 'JSON object required');
+  if (route === 'auth-save') {
+    if (Object.keys(body).some(key => key !== 'cookie')) throw new RequestError(400, 'Invalid request fields');
+    try { return {cookie:normalizeManualAuth(body.cookie)}; }
+    catch (error) { throw new RequestError(400, error.message); }
+  }
   const fields = {
     send: ['id', 'prompt', 'clientNonce', 'attachmentPaths', 'attachmentNames'], interrupt: ['id'], rename: ['id', 'name'], delete: ['id', 'force'],
     group: ['name', 'ids'], 'group-rename': ['id', 'name'], 'group-delete': ['id'], pin: ['id', 'pinned'],
@@ -437,6 +443,7 @@ function sourceLabel(source) {
 }
 
 async function inspectAuth(config, { force = false } = {}) {
+  const manualConfigured = await hasManualAuth(config);
   try {
     const resolved = await resolveCookie({
       cookie: config.cookie,
@@ -449,6 +456,7 @@ async function inspectAuth(config, { force = false } = {}) {
     const userId = userIdFromCookie(resolved.header);
     const signedIn = names.includes('sso') || names.includes('sso-rw') || !!userId;
     return {
+      manualConfigured,
       signedIn,
       cookiePresent: names.length > 0,
       cookieNames: names,
@@ -459,6 +467,7 @@ async function inspectAuth(config, { force = false } = {}) {
     };
   } catch (error) {
     return {
+      manualConfigured,
       signedIn: false,
       cookiePresent: false,
       cookieNames: [],
@@ -578,7 +587,7 @@ export function registerGrokRoutes(ctx, config = {}) {
           validateQuery(url, route);
           let body;
           if (method === 'POST') {
-            if (route === 'auth-refresh' || route === 'auth-clear') {
+            if (route === 'auth-refresh' || route === 'auth-clear' || route === 'auth-remove') {
               if ((header(req, 'content-length') ?? '0') !== '0' || header(req, 'transfer-encoding') !== undefined) {
                 const payload = await readJson(req);
                 if (!payload || typeof payload !== 'object' || Array.isArray(payload) || Object.keys(payload).length) {
@@ -604,17 +613,38 @@ export function registerGrokRoutes(ctx, config = {}) {
             return;
           }
           if (route === 'auth-refresh') {
-            invalidateCookieCache();
+            invalidateCookieCache({cacheCookie:config.cacheCookie !== false});
             resetRelay();
             json(res, 200, await inspectAuth(config, { force: true }));
             return;
           }
           if (route === 'auth-clear') {
-            invalidateCookieCache();
+            invalidateCookieCache({cacheCookie:config.cacheCookie !== false});
             resetRelay();
             json(res, 200, {
+              manualConfigured: await hasManualAuth(config),
               signedIn: false, cookiePresent: false, cookieNames: [], userId: null, source: null, sourceLabel: '已清除',
               message: '已清除内存和本地会话缓存。~/.dsh/grokbot/cookie.txt 未改动；请重新检测或打开 grok.com 登录。',
+            });
+            return;
+          }
+          if (route === 'auth-save') {
+            await saveManualAuth(body.cookie, config);
+            invalidateCookieCache({cacheCookie:config.cacheCookie !== false});
+            resetRelay();
+            const auth = await inspectAuth(config, {force:true});
+            json(res, 200, {...auth, message:auth.source === 'config'
+              ? '手动 Auth 已保存在本机；当前仍优先使用启动配置或环境变量。'
+              : '手动 Auth 已保存并应用，登录是否有效以机器人连接结果为准。'});
+            return;
+          }
+          if (route === 'auth-remove') {
+            await removeManualAuth(config);
+            invalidateCookieCache({cacheCookie:config.cacheCookie !== false});
+            resetRelay();
+            json(res, 200, {
+              manualConfigured:false, signedIn:false, cookiePresent:false, cookieNames:[], userId:null,
+              source:null, sourceLabel:'未配置', message:'手动 Auth 已移除，未更改浏览器登录状态。',
             });
             return;
           }

@@ -98,7 +98,7 @@ try {
   const proxyOrigin = await listen(reserve);
   const proxyPort = Number(new URL(proxyOrigin).port);
   await close(reserve);
-  await installed.apply(ctx, {herdr:{upstreamOrigin, parentOrigin:hostOrigin, proxyPort}, grok:{cookie:'sso=synthetic-offline; x-userid=offline-account', profileDirs:[], cacheCookie:false}});
+  await installed.apply(ctx, {herdr:{upstreamOrigin, parentOrigin:hostOrigin, proxyPort}, grok:{cookie:'sso=synthetic-offline; x-userid=offline-account', cookieFile:join(work, 'cookie.txt'), profileDirs:[], cacheCookie:false}});
   assert.equal(route.path, '/__dsh_grok/api');
   const status = await fetch(hostOrigin + route.path + '/status');
   assert.equal(status.status, 200);
